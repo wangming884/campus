@@ -83,9 +83,9 @@
   <!-- 页面横幅 -->
   <div class="page-banner">
     <div class="container">
-      <span class="page-banner-badge">GET IN TOUCH</span>
-      <h1 class="page-banner-title">联系我们 · 走进创客工坊</h1>
-      <p class="page-banner-desc">
+      <span class="page-banner-badge" data-cms-field="badge">GET IN TOUCH</span>
+      <h1 class="page-banner-title" data-cms-field="bannerTitle">联系我们 · 走进创客工坊</h1>
+      <p class="page-banner-desc" data-cms-field="bannerDescription">
         无论您是对纳新报名有任何疑问，还是寻求项目合作、学术讲座与赞助参访，我们随时恭候您的联络！
       </p>
     </div>
@@ -95,31 +95,31 @@
     <div class="container">
       
       <!-- 4大联络通道卡片 -->
-      <div class="contact-channels-grid">
+      <div class="contact-channels-grid" data-cms-section="showChannels">
         <div class="channel-card">
           <div class="channel-icon">📍</div>
-          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;">实体工位与工作室</h4>
+          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;" data-cms-field="locationTitle">实体工位与工作室</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;" id="cnt-location">大学生活动中心 302 极客创客工坊</p>
-          <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 10px;">开放时间: 9:00 - 22:30</div>
+          <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-top: 10px;" data-cms-field="locationHours">开放时间: 9:00 - 22:30</div>
         </div>
 
         <div class="channel-card">
           <div class="channel-icon">📧</div>
-          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;">官方电子邮箱</h4>
+          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;" data-cms-field="emailTitle">官方电子邮箱</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;" id="cnt-email">contact@campus.club</p>
-          <div style="font-size: 12px; color: var(--text-light); margin-top: 10px;">招新答疑 / 赞助外联</div>
+          <div style="font-size: 12px; color: var(--text-light); margin-top: 10px;" data-cms-field="emailHint">招新答疑 / 赞助外联</div>
         </div>
 
         <div class="channel-card">
           <div class="channel-icon">🐧</div>
-          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;">招新官方 QQ 大群</h4>
+          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;" data-cms-field="qqTitle">招新官方 QQ 大群</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">群号：<strong style="color: var(--primary);" id="cnt-qq">889217643</strong></p>
           <button class="btn btn-outline btn-sm" onclick="copyQQGroup()" style="margin-top: 8px;">📋 一键复制群号</button>
         </div>
 
         <div class="channel-card">
           <div class="channel-icon">📱</div>
-          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;">官方微信公众号</h4>
+          <h4 style="font-size: 17px; font-weight: 750; margin-bottom: 6px;" data-cms-field="wechatTitle">官方微信公众号</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;" id="cnt-wechat">Campus_Geek_Club</p>
           <div style="font-size: 12px; color: var(--text-light); margin-top: 10px;">每周推送技术与动态</div>
         </div>
@@ -128,9 +128,9 @@
       <!-- 参访指引与在线留言网格 -->
       <div class="contact-layout">
         <!-- 留言反馈 -->
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
-          <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: #0f172a;">💬 在线咨询与建议留言</h3>
-          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">如果您有任何关于招新、技术交流或项目赞助的疑问，欢迎给我们留言。</p>
+        <div data-cms-section="showInquiry" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
+          <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: #0f172a;" data-cms-field="inquiryTitle">💬 在线咨询与建议留言</h3>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;" data-cms-field="inquiryDescription">如果您有任何关于招新、技术交流或项目赞助的疑问，欢迎给我们留言。</p>
 
           <form onsubmit="handleInquirySubmit(event)">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -165,8 +165,8 @@
         </div>
 
         <!-- 参访与工位规则 -->
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
-          <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 14px; color: #0f172a;">🗺️ 工位与实体工作室参访指南</h3>
+        <div data-cms-section="showGuide" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
+          <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 14px; color: #0f172a;" data-cms-field="guideTitle">🗺️ 工位与实体工作室参访指南</h3>
           
           <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px; line-height: 1.8; font-size: 14.5px; color: #334155;">
             <div><strong>🏢 建筑方位：</strong>大学生活动中心（东门进入直行乘电梯至 3 层）</div>
@@ -193,6 +193,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        loadSystemPageCMS('contact');
         const res = await apiRequest('/portal/config');
         if (res.success && res.data && res.data.contact) {
           const c = res.data.contact;

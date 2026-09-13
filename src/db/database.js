@@ -8,7 +8,8 @@ const bcrypt = require('bcryptjs');
 const uploadsDir = path.join(__dirname, '../../uploads');
 const templatesDir = path.join(uploadsDir, 'templates');
 const submissionsDir = path.join(uploadsDir, 'submissions');
-[uploadsDir, templatesDir, submissionsDir].forEach(dir => {
+const clubFilesDir = path.join(uploadsDir, 'club');
+[uploadsDir, templatesDir, submissionsDir, clubFilesDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -116,6 +117,19 @@ async function createMySQLTables() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS club_documents (
+      id INT PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      filename VARCHAR(255) NOT NULL,
+      filepath TEXT NOT NULL,
+      mime_type VARCHAR(150),
+      size BIGINT DEFAULT 0,
+      uploaded_by INT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS application_templates (
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
@@ -196,10 +210,23 @@ async function createMySQLTables() {
       sort_order INT DEFAULT 0,
       seo_description TEXT,
       content LONGTEXT,
+      content_html LONGTEXT,
+      template_config TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  try {
+    await pool.query('ALTER TABLE site_pages ADD COLUMN content_html LONGTEXT');
+  } catch (error) {
+    if (!/duplicate|exists/i.test(error.message)) throw error;
+  }
+  try {
+    await pool.query('ALTER TABLE site_pages ADD COLUMN template_config TEXT');
+  } catch (error) {
+    if (!/duplicate|exists/i.test(error.message)) throw error;
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS member_messages (
@@ -644,6 +671,16 @@ function initFallbackSQLite() {
       contact_json TEXT NOT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS club_documents (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      title TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      filepath TEXT NOT NULL,
+      mime_type TEXT,
+      size INTEGER DEFAULT 0,
+      uploaded_by INTEGER,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS application_templates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -709,6 +746,8 @@ function initFallbackSQLite() {
       sort_order INTEGER DEFAULT 0,
       seo_description TEXT,
       content TEXT,
+      content_html TEXT,
+      template_config TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -779,6 +818,33 @@ function initFallbackSQLite() {
     );
   `);
 
+  try {
+    sqliteDb.exec('ALTER TABLE site_pages ADD COLUMN content_html TEXT');
+  } catch (error) {
+    if (!/duplicate column name|already exists/i.test(error.message)) throw error;
+  }
+  try {
+    sqliteDb.exec('ALTER TABLE site_pages ADD COLUMN template_config TEXT');
+  } catch (error) {
+    if (!/duplicate column name|already exists/i.test(error.message)) throw error;
+  }
+
+  const corePages = [
+    ['首页', 'home', '/', 1, '高校社团官方主页', ''],
+    ['关于我们', 'about', '/about', 2, '社团发展历程、文化理念与荣誉介绍', ''],
+    ['纳新通道', 'recruitment', '/recruitment', 3, '社团招新申请与报名通道', ''],
+    ['通知公告', 'notices', '/notices', 4, '社团公开通知和成员公告', ''],
+    ['联系方式', 'contact', '/contact', 5, '社团联系方式与在线咨询', '']
+  ];
+  const insertCorePage = sqliteDb.prepare(`
+    INSERT OR IGNORE INTO site_pages
+      (title, slug, path, is_system, is_nav_visible, sort_order, seo_description, content, content_html, template_config)
+    VALUES (?, ?, ?, 1, 1, ?, ?, ?, ?, NULL)
+  `);
+  for (const page of corePages) {
+    insertCorePage.run(page[0], page[1], page[2], page[3], page[4], page[4], page[5]);
+  }
+
   // 为 SQLite 应急引擎预置 5 个默认发展方向
   const dirCount = sqliteDb.prepare('SELECT COUNT(*) as c FROM development_directions').get();
   if (!dirCount || dirCount.c === 0) {
@@ -822,6 +888,44 @@ function sqliteExecute(sql, params = []) {
   };
 }
 
+async function cleanupReviewedSubmissions() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const cutoffValue = cutoff.toISOString().slice(0, 19).replace('T', ' ');
+  const expired = await query(`
+    SELECT id, submission_filepath, submission_filename
+    FROM membership_applications
+    WHERE status IN ('approved', 'rejected')
+      AND reviewed_at IS NOT NULL
+      AND reviewed_at <= ?
+      AND (submission_filepath IS NOT NULL OR submission_filename IS NOT NULL)
+  `, [cutoffValue]);
+
+  let cleaned = 0;
+  for (const application of expired) {
+    const candidates = [
+      application.submission_filepath,
+      application.submission_filepath ? path.join(submissionsDir, path.basename(application.submission_filepath)) : null,
+      application.submission_filename ? path.join(submissionsDir, application.submission_filename) : null
+    ].filter(Boolean);
+
+    for (const filePath of new Set(candidates)) {
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (error) { console.warn('[Cleanup] 删除申请附件失败:', error.message); }
+      }
+    }
+
+    await execute(`
+      UPDATE membership_applications
+      SET submission_filepath = NULL, submission_filename = NULL
+      WHERE id = ?
+    `, [application.id]);
+    cleaned += 1;
+  }
+
+  if (cleaned > 0) console.log(`[Cleanup] 已自动清理 ${cleaned} 份超过 1 天的已审阅申请附件`);
+  return cleaned;
+}
+
 module.exports = {
   initDatabase,
   query,
@@ -829,5 +933,7 @@ module.exports = {
   execute,
   uploadsDir,
   templatesDir,
-  submissionsDir
+  submissionsDir,
+  clubFilesDir,
+  cleanupReviewedSubmissions
 };

@@ -3,6 +3,14 @@ const router = express.Router();
 const { query, getOne, execute } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
+function parseTemplateConfig(page) {
+  if (!page) return page;
+  if (typeof page.template_config === 'string') {
+    try { page.template_config = JSON.parse(page.template_config || '{}'); } catch (error) { page.template_config = {}; }
+  }
+  return page;
+}
+
 // 1. 获取导航栏可见页面列表 (公开)
 router.get('/nav', async (req, res) => {
   try {
@@ -15,7 +23,7 @@ router.get('/nav', async (req, res) => {
 
     res.json({
       success: true,
-      data: pages
+      data: pages.map(parseTemplateConfig)
     });
   } catch (error) {
     console.error('Fetch nav pages error:', error);
@@ -53,7 +61,7 @@ router.get('/:slug', async (req, res) => {
 
     res.json({
       success: true,
-      data: page
+      data: parseTemplateConfig(page)
     });
   } catch (error) {
     console.error('Get page by slug error:', error);
@@ -64,7 +72,7 @@ router.get('/:slug', async (req, res) => {
 // 4. 管理员新增自定义网页
 router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
-    let { title, slug, seo_description, content, is_nav_visible, sort_order } = req.body;
+    let { title, slug, seo_description, content, content_html, template_config, is_nav_visible, sort_order } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ success: false, message: '页面标题不能为空' });
@@ -88,8 +96,8 @@ router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), async
     const sort = parseInt(sort_order, 10) || 10;
 
     const result = await execute(`
-      INSERT INTO site_pages (title, slug, path, is_system, is_nav_visible, sort_order, seo_description, content)
-      VALUES (?, ?, ?, 0, ?, ?, ?, ?)
+      INSERT INTO site_pages (title, slug, path, is_system, is_nav_visible, sort_order, seo_description, content, content_html, template_config)
+      VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
     `, [
       title.trim(),
       slug,
@@ -97,7 +105,9 @@ router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), async
       navVisible,
       sort,
       (seo_description || '').trim(),
-      (content || '').trim()
+      (content || '').trim(),
+      (content_html || '').trim(),
+      typeof template_config === 'string' ? template_config : JSON.stringify(template_config || {})
     ]);
 
     res.status(201).json({
@@ -120,7 +130,7 @@ router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), async
 router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const pageId = req.params.id;
-    const { title, seo_description, content, is_nav_visible, sort_order } = req.body;
+    const { title, seo_description, content, content_html, template_config, is_nav_visible, sort_order } = req.body;
 
     const page = await getOne('SELECT * FROM site_pages WHERE id = ?', [pageId]);
     if (!page) {
@@ -136,12 +146,16 @@ router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), asy
 
     await execute(`
       UPDATE site_pages 
-      SET title = ?, seo_description = ?, content = ?, is_nav_visible = ?, sort_order = ?
+      SET title = ?, seo_description = ?, content = ?, content_html = ?, template_config = ?, is_nav_visible = ?, sort_order = ?
       WHERE id = ?
     `, [
       title.trim(),
       (seo_description || '').trim(),
       content !== undefined ? content : page.content,
+      content_html !== undefined ? content_html : page.content_html,
+      template_config !== undefined
+        ? (typeof template_config === 'string' ? template_config : JSON.stringify(template_config || {}))
+        : page.template_config,
       navVisible,
       sort,
       pageId

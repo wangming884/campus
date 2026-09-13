@@ -291,7 +291,7 @@ function renderOverviewPane() {
 // ==================== 快捷服务通道动态渲染 & 发展意向方向加载 ====================
 async function loadDirectionsForDropdowns() {
   try {
-    const res = await apiRequest('/directions/directions');
+    const res = await apiRequest('/directions');
     if (res.success && res.data) {
       const options = res.data.map(d =>
         `<option value="${escapeHtml(d.title)}">${escapeHtml(d.title)}</option>`

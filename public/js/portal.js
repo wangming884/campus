@@ -3,6 +3,7 @@
    ========================================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadSystemPageCMS('home');
   loadPortalConfig();
   loadHomepageNotices();
   loadActiveTemplate();

@@ -170,9 +170,58 @@ async function loadPortalCMS() {
 
       // 渲染统计项输入框
       renderStatsInputs(cfg.stats || []);
+      loadAboutDocumentInfo();
     }
   } catch (error) {
     showToast('获取官网配置失败: ' + error.message, 'error');
+  }
+}
+
+async function loadAboutDocumentInfo() {
+  const current = document.getElementById('about-document-current');
+  if (!current) return;
+  try {
+    const res = await apiRequest('/portal/about-document/info');
+    if (res.success && res.data) {
+      current.innerHTML = `当前资料：<strong>${escapeHtml(res.data.title || res.data.filename)}</strong>（${formatFileSize(res.data.size)}，更新于 ${formatDateTime(res.data.updated_at)}）`;
+    } else {
+      current.innerText = '当前尚未上传社团介绍资料';
+    }
+  } catch (error) {
+    current.innerText = '读取当前资料失败';
+  }
+}
+
+async function handleAboutDocumentUpload(event) {
+  event.preventDefault();
+  const fileInput = document.getElementById('about-document-file');
+  if (!fileInput.files || !fileInput.files[0]) return;
+
+  const button = document.getElementById('btn-upload-about-document');
+  const formData = new FormData();
+  formData.append('title', document.getElementById('about-document-title').value.trim());
+  formData.append('file', fileInput.files[0]);
+  button.disabled = true;
+  try {
+    const res = await apiRequest('/portal/about-document', { method: 'POST', body: formData });
+    showToast(res.message, 'success');
+    document.getElementById('form-about-document').reset();
+    loadAboutDocumentInfo();
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function deleteAboutDocument() {
+  if (!confirm('确定删除当前社团介绍资料吗？关于我们页面将隐藏下载入口。')) return;
+  try {
+    const res = await apiRequest('/portal/about-document', { method: 'DELETE' });
+    showToast(res.message, 'success');
+    loadAboutDocumentInfo();
+  } catch (error) {
+    showToast(error.message, 'error');
   }
 }
 
@@ -1080,6 +1129,10 @@ function openCreatePageModal() {
   document.getElementById('page-nav-visible-input').checked = true;
   document.getElementById('page-desc-input').value = '';
   document.getElementById('page-content-input').value = '';
+  document.getElementById('page-content-html-input').value = '';
+  document.getElementById('default-template-fields').style.display = 'none';
+  renderTemplateSpecificFields('', {});
+  fillTemplateConfigForm({});
   openModal('modal-edit-page');
 }
 
@@ -1097,8 +1150,138 @@ function openEditPageModal(pageId) {
   document.getElementById('page-nav-visible-input').checked = Boolean(page.is_nav_visible);
   document.getElementById('page-desc-input').value = page.seo_description || '';
   document.getElementById('page-content-input').value = page.content || '';
+  document.getElementById('page-content-html-input').value = page.content_html || '';
+  document.getElementById('default-template-fields').style.display = page.is_system ? 'block' : 'none';
+  renderTemplateSpecificFields(page.slug, page.template_config || {});
+  fillTemplateConfigForm(page.template_config || {});
 
   openModal('modal-edit-page');
+}
+
+function fillTemplateConfigForm(config) {
+  const template = typeof config === 'string' ? (() => {
+    try { return JSON.parse(config || '{}'); } catch (error) { return {}; }
+  })() : (config || {});
+  document.getElementById('template-badge-input').value = template.badge || '';
+  document.getElementById('template-banner-title-input').value = template.bannerTitle || '';
+  document.getElementById('template-banner-description-input').value = template.bannerDescription || '';
+  document.getElementById('template-intro-title-input').value = template.introTitle || '';
+  document.getElementById('template-intro-content-input').value = template.introContent || '';
+  document.querySelectorAll('[data-template-key]').forEach(input => {
+    if (input.type === 'checkbox') {
+      input.checked = template[input.dataset.templateKey] !== false;
+    } else {
+      input.value = template[input.dataset.templateKey] || '';
+    }
+  });
+}
+
+const templateFieldDefinitions = {
+  home: [
+    ['showHighlights', '显示首页优势卡片', 'checkbox'], ['showPillars', '显示首页核心能力区', 'checkbox'],
+    ['showRecruitmentSteps', '显示首页纳新流程区', 'checkbox'], ['showNotices', '显示首页公告区', 'checkbox'],
+    ['aboutSectionTitle', '关于板块标题', false], ['aboutSectionDescription', '关于板块说明', true],
+    ['highlight1Title', '优势卡片 1 标题', false], ['highlight1Text', '优势卡片 1 内容', true],
+    ['highlight2Title', '优势卡片 2 标题', false], ['highlight2Text', '优势卡片 2 内容', true],
+    ['highlight3Title', '优势卡片 3 标题', false], ['highlight3Text', '优势卡片 3 内容', true],
+    ['pillarSectionTitle', '核心能力区标题', false], ['pillarSectionDescription', '核心能力区说明', true],
+    ['pillar1Title', '能力卡片 1 标题', false], ['pillar1Text', '能力卡片 1 内容', true],
+    ['pillar2Title', '能力卡片 2 标题', false], ['pillar2Text', '能力卡片 2 内容', true],
+    ['pillar3Title', '能力卡片 3 标题', false], ['pillar3Text', '能力卡片 3 内容', true],
+    ['pillar4Title', '能力卡片 4 标题', false], ['pillar4Text', '能力卡片 4 内容', true],
+    ['recruitmentSectionTitle', '纳新流程区标题', false], ['recruitmentSectionDescription', '纳新流程区说明', true],
+    ['noticeSectionTitle', '公告区标题', false], ['noticeSectionDescription', '公告区说明', true]
+  ],
+  about: [
+    ['showValues', '显示核心价值观区', 'checkbox'], ['showMilestones', '显示发展历程区', 'checkbox'], ['showHonors', '显示荣誉墙区', 'checkbox'],
+    ['valuesTitle', '核心价值观区标题', false], ['valuesDescription', '核心价值观区说明', true],
+    ['milestonesTitle', '发展历程区标题', false], ['milestonesDescription', '发展历程区说明', true],
+    ['honorsTitle', '荣誉墙区标题', false], ['honorsDescription', '荣誉墙区说明', true],
+    ['value1Title', '价值观卡片 1 标题', false], ['value1Text', '价值观卡片 1 内容', true],
+    ['value2Title', '价值观卡片 2 标题', false], ['value2Text', '价值观卡片 2 内容', true],
+    ['value3Title', '价值观卡片 3 标题', false], ['value3Text', '价值观卡片 3 内容', true],
+    ['value4Title', '价值观卡片 4 标题', false], ['value4Text', '价值观卡片 4 内容', true],
+    ['milestone1Year', '历程 1 年份/阶段', false], ['milestone1Title', '历程 1 标题', false], ['milestone1Text', '历程 1 内容', true],
+    ['milestone2Year', '历程 2 年份/阶段', false], ['milestone2Title', '历程 2 标题', false], ['milestone2Text', '历程 2 内容', true],
+    ['milestone3Year', '历程 3 年份/阶段', false], ['milestone3Title', '历程 3 标题', false], ['milestone3Text', '历程 3 内容', true],
+    ['milestone4Year', '历程 4 年份/阶段', false], ['milestone4Title', '历程 4 标题', false], ['milestone4Text', '历程 4 内容', true],
+    ['milestone5Year', '历程 5 年份/阶段', false], ['milestone5Title', '历程 5 标题', false], ['milestone5Text', '历程 5 内容', true],
+    ['honor1Title', '荣誉卡片 1 标题', false], ['honor1Badge', '荣誉卡片 1 标签', false],
+    ['honor2Title', '荣誉卡片 2 标题', false], ['honor2Badge', '荣誉卡片 2 标签', false],
+    ['honor3Title', '荣誉卡片 3 标题', false], ['honor3Badge', '荣誉卡片 3 标签', false]
+  ],
+  recruitment: [
+    ['showDownload', '显示申请表下载区', 'checkbox'], ['showApplication', '显示在线申请区', 'checkbox'], ['showFaq', '显示常见问题区', 'checkbox'],
+    ['downloadStepLabel', '申请表下载区小标题', false], ['applicationTitle', '在线申请区标题', false],
+    ['applicationDescription', '在线申请区说明', true], ['faqTitle', '常见问题区标题', false],
+    ['faq1Question', '常见问题 1：问题', false], ['faq1Answer', '常见问题 1：答案', true],
+    ['faq2Question', '常见问题 2：问题', false], ['faq2Answer', '常见问题 2：答案', true],
+    ['faq3Question', '常见问题 3：问题', false], ['faq3Answer', '常见问题 3：答案', true],
+    ['faq4Question', '常见问题 4：问题', false], ['faq4Answer', '常见问题 4：答案', true]
+  ],
+  notices: [
+    ['showFilters', '显示公告筛选工具栏', 'checkbox'],
+    ['filterAll', '全部分类按钮文字', false], ['filterPublic', '公开分类按钮文字', false],
+    ['filterMember', '成员分类按钮文字', false], ['searchPlaceholder', '公告搜索框提示文字', false]
+  ],
+  contact: [
+    ['showChannels', '显示联系方式卡片区', 'checkbox'], ['showInquiry', '显示在线咨询区', 'checkbox'], ['showGuide', '显示参访指南区', 'checkbox'],
+    ['locationTitle', '地址卡片标题', false], ['locationHours', '地址卡片开放时间', false],
+    ['emailTitle', '邮箱卡片标题', false], ['emailHint', '邮箱卡片说明', false],
+    ['qqTitle', 'QQ群卡片标题', false], ['wechatTitle', '微信公众号卡片标题', false],
+    ['inquiryTitle', '在线咨询区标题', false], ['inquiryDescription', '在线咨询区说明', true],
+    ['guideTitle', '参访指南区标题', false]
+  ]
+};
+
+function renderTemplateSpecificFields(slug, config) {
+  const container = document.getElementById('template-specific-fields');
+  if (!container) return;
+  const fields = templateFieldDefinitions[slug] || [];
+  container.innerHTML = fields.length === 0 ? '' : `
+    <div style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px;">
+      <div style="font-weight: 700; color: var(--text-main); margin-bottom: 10px;">${escapeHtml(slug === 'about' ? '关于我们专属文案' : slug === 'recruitment' ? '纳新通道专属文案' : slug === 'notices' ? '通知公告专属文案' : '联系方式专属文案')}</div>
+      <div class="form-grid-2">
+        ${fields.map(([key, label, multiline]) => `
+          <div class="form-group">
+            <label class="form-label">${escapeHtml(label)}</label>
+            ${multiline === 'checkbox'
+              ? `<label style="display:flex;align-items:center;gap:8px;margin-top:10px;"><input type="checkbox" data-template-key="${key}"> 启用此区块</label>`
+              : multiline
+              ? `<textarea class="form-control" data-template-key="${key}" rows="2" placeholder="${escapeHtml(label)}"></textarea>`
+              : `<input type="text" class="form-control" data-template-key="${key}" placeholder="${escapeHtml(label)}">`}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function readTemplateConfigForm() {
+  const config = {
+    badge: document.getElementById('template-badge-input').value.trim(),
+    bannerTitle: document.getElementById('template-banner-title-input').value.trim(),
+    bannerDescription: document.getElementById('template-banner-description-input').value.trim(),
+    introTitle: document.getElementById('template-intro-title-input').value.trim(),
+    introContent: document.getElementById('template-intro-content-input').value.trim()
+  };
+  document.querySelectorAll('[data-template-key]').forEach(input => {
+    config[input.dataset.templateKey] = input.type === 'checkbox' ? input.checked : input.value.trim();
+  });
+  return config;
+}
+
+function resetTemplateFields() {
+  document.getElementById('template-badge-input').value = '';
+  document.getElementById('template-banner-title-input').value = '';
+  document.getElementById('template-banner-description-input').value = '';
+  document.getElementById('template-intro-title-input').value = '';
+  document.getElementById('template-intro-content-input').value = '';
+  document.querySelectorAll('[data-template-key]').forEach(input => {
+    if (input.type === 'checkbox') input.checked = true;
+    else input.value = '';
+  });
+  showToast('已恢复默认模板文案和区块显示状态，点击保存后生效', 'info');
 }
 
 async function handleSavePage(e) {
@@ -1112,7 +1295,9 @@ async function handleSavePage(e) {
     sort_order: parseInt(document.getElementById('page-sort-input').value, 10) || 10,
     is_nav_visible: document.getElementById('page-nav-visible-input').checked,
     seo_description: document.getElementById('page-desc-input').value.trim(),
-    content: document.getElementById('page-content-input').value.trim()
+    content: document.getElementById('page-content-input').value.trim(),
+    content_html: document.getElementById('page-content-html-input').value.trim(),
+    template_config: readTemplateConfigForm()
   };
 
   const btn = document.getElementById('btn-save-page');

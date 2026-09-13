@@ -92,9 +92,9 @@
   <!-- 页面横幅 -->
   <div class="page-banner">
     <div class="container">
-      <span class="page-banner-badge">INFORMATION DESK</span>
-      <h1 class="page-banner-title">社团官方通知公告中心</h1>
-      <p class="page-banner-desc">
+      <span class="page-banner-badge" data-cms-field="badge">INFORMATION DESK</span>
+      <h1 class="page-banner-title" data-cms-field="bannerTitle">社团官方通知公告中心</h1>
+      <p class="page-banner-desc" data-cms-field="bannerDescription">
         第一时间获取全校招新宣讲会动态、学术技术沙龙日程安排、竞赛组队通知与社内专属规章资源。
       </p>
     </div>
@@ -104,15 +104,15 @@
     <div class="container" style="max-width: 980px;">
       
       <!-- 检索与分类工具条 -->
-      <div class="notices-filter-bar">
+      <div class="notices-filter-bar" data-cms-section="showFilters">
         <div class="filter-pills">
-          <div class="filter-pill active" onclick="setNoticeCategory('all', this)">全部通告</div>
-          <div class="filter-pill" onclick="setNoticeCategory('public', this)">🌐 全校公开</div>
-          <div class="filter-pill" onclick="setNoticeCategory('member', this)">🔒 社内成员专享</div>
+          <div class="filter-pill active" onclick="setNoticeCategory('all', this)" data-cms-field="filterAll">全部通告</div>
+          <div class="filter-pill" onclick="setNoticeCategory('public', this)" data-cms-field="filterPublic">🌐 全校公开</div>
+          <div class="filter-pill" onclick="setNoticeCategory('member', this)" data-cms-field="filterMember">🔒 社内成员专享</div>
         </div>
 
         <div style="display: flex; gap: 8px;">
-          <input type="text" class="form-control" id="notice-search-input" placeholder="搜索公告标题或标签..." style="width: 260px;" onkeyup="if(event.key==='Enter') loadNoticesList()">
+          <input type="text" class="form-control" id="notice-search-input" data-cms-field="searchPlaceholder" placeholder="搜索公告标题或标签..." style="width: 260px;" onkeyup="if(event.key==='Enter') loadNoticesList()">
           <button class="btn btn-outline" onclick="loadNoticesList()">🔍 搜索</button>
         </div>
       </div>
@@ -156,6 +156,7 @@
     let noticesData = [];
 
     document.addEventListener('DOMContentLoaded', () => {
+      loadSystemPageCMS('notices');
       loadNoticesList();
     });
 

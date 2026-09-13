@@ -300,6 +300,60 @@ async function loadSharedConfig() {
   } catch (e) {}
 }
 
+// 系统页存在自定义 HTML 时，替换默认页面模板，便于为不同社团快速定制官网。
+async function loadSystemPageCMS(slug) {
+  try {
+    const res = await apiRequest(`/pages/${encodeURIComponent(slug)}`);
+    const page = res && res.success ? res.data : null;
+    if (!page) return false;
+    if (!page.content_html || !page.content_html.trim()) {
+      applyPageTemplateConfig(page.template_config || {});
+      if (page.title) document.title = page.title;
+      const description = document.querySelector('meta[name="description"]');
+      if (description && page.seo_description) description.setAttribute('content', page.seo_description);
+      return false;
+    }
+
+    const override = document.createElement('section');
+    override.className = 'section cms-page-override';
+    override.innerHTML = `<div class="container">${page.content_html}</div>`;
+    const header = document.getElementById('shared-header');
+    if (header) header.insertAdjacentElement('afterend', override);
+    document.querySelectorAll('.page-banner, body > .section').forEach(element => {
+      if (element !== override && !element.classList.contains('cms-page-override')) element.style.display = 'none';
+    });
+    if (page.title) document.title = page.title;
+    const description = document.querySelector('meta[name="description"]');
+    if (description && page.seo_description) description.setAttribute('content', page.seo_description);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function applyPageTemplateConfig(config) {
+  const template = typeof config === 'string' ? (() => {
+    try { return JSON.parse(config || '{}'); } catch (error) { return {}; }
+  })() : (config || {});
+  window.activePageTemplate = template;
+  Object.entries(template).forEach(([field, value]) => {
+    if (field.startsWith('show')) {
+      document.querySelectorAll(`[data-cms-section="${field}"]`).forEach(element => {
+        element.style.display = value === false ? 'none' : '';
+      });
+      return;
+    }
+    if (!value) return;
+    document.querySelectorAll(`[data-cms-field="${field}"]`).forEach(element => {
+      if (field === 'searchPlaceholder' && 'placeholder' in element) {
+        element.placeholder = value;
+      } else {
+        element.innerText = value;
+      }
+    });
+  });
+}
+
 function openLoginModal() { openModal('modal-login'); }
 function openRegisterModal() { openModal('modal-register'); }
 function switchModal(fromId, toId) {

@@ -96,9 +96,9 @@
   <!-- 页面横幅 -->
   <div class="page-banner">
     <div class="container">
-      <span class="page-banner-badge">RECRUITMENT APPLICATION</span>
-      <h1 class="page-banner-title">2026 纳新直通车 · 申请投递专区</h1>
-      <p class="page-banner-desc">
+      <span class="page-banner-badge" data-cms-field="badge">RECRUITMENT APPLICATION</span>
+      <h1 class="page-banner-title" data-cms-field="bannerTitle">2026 纳新直通车 · 申请投递专区</h1>
+      <p class="page-banner-desc" data-cms-field="bannerDescription">
         下载官方入社申请表模板，填写完整后在此在线上传投递。管理团队审核通过后将自动晋升为您为【社团成员】并发送录取通知邮件！
       </p>
     </div>
@@ -108,9 +108,9 @@
     <div class="container">
       
       <!-- 模板快速下载横幅 -->
-      <div class="download-banner">
+      <div class="download-banner" data-cms-section="showDownload">
         <div>
-          <div style="font-size: 13px; color: #38bdf8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">STEP 1: OFFICIAL TEMPLATE</div>
+          <div style="font-size: 13px; color: #38bdf8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;" data-cms-field="downloadStepLabel">STEP 1: OFFICIAL TEMPLATE</div>
           <h3 style="font-size: 24px; font-weight: 800; margin-bottom: 6px;" id="rec-template-title">2026学年学生社团入社申请登记表（官方标准版）</h3>
           <p style="font-size: 14.5px; color: #94a3b8;" id="rec-template-meta">支持 Word (.docx) / PDF 格式，请先下载并认真填写个人志愿、技能特长与未来规划。</p>
         </div>
@@ -122,11 +122,11 @@
       <!-- 表单与常见问答网格 -->
       <div class="recruitment-grid">
         <!-- 左列：在线投递表单卡片 -->
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
+        <div data-cms-section="showApplication" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--border-light);">
             <div>
-              <h3 style="font-size: 22px; font-weight: 800; color: #0f172a;">在线提交入社申请</h3>
-              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">请使用注册账号登录后上传填写完毕的申请表</div>
+              <h3 style="font-size: 22px; font-weight: 800; color: #0f172a;" data-cms-field="applicationTitle">在线提交入社申请</h3>
+              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" data-cms-field="applicationDescription">请使用注册账号登录后上传填写完毕的申请表</div>
             </div>
             <span class="badge badge-admin" id="user-status-chip">未登录</span>
           </div>
@@ -179,27 +179,27 @@
         </div>
 
         <!-- 右列：常见问题解答 (FAQ) & 提示 -->
-        <div>
-          <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 20px; color: #0f172a;">💡 招新常见疑问解答 (FAQ)</h3>
+        <div data-cms-section="showFaq">
+          <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 20px; color: #0f172a;" data-cms-field="faqTitle">💡 招新常见疑问解答 (FAQ)</h3>
 
           <div class="faq-card">
-            <div class="faq-q">❓ 没有编程或设计基础可以报名吗？</div>
-            <div class="faq-a">完全可以！我们设立了完善的新社员培训成长营机制，安排高年级优秀学长学姐结对指导。相比现有的技术储备，我们更看重你对学习的纯粹热情、责任心与持续投入度。</div>
+            <div class="faq-q" data-cms-field="faq1Question">❓ 没有编程或设计基础可以报名吗？</div>
+            <div class="faq-a" data-cms-field="faq1Answer">完全可以！我们设立了完善的新社员培训成长营机制，安排高年级优秀学长学姐结对指导。相比现有的技术储备，我们更看重你对学习的纯粹热情、责任心与持续投入度。</div>
           </div>
 
           <div class="faq-card">
-            <div class="faq-q">❓ 申请提交后多久能出审核结果？</div>
-            <div class="faq-a">管理团队每天会固定时间集中审核入社申请表。通常在您提交后的 24-48 小时内完成审核，系统会立即自动触发邮件通知，请留意注册时填写的电子邮箱收件箱及垃圾邮件夹。</div>
+            <div class="faq-q" data-cms-field="faq2Question">❓ 申请提交后多久能出审核结果？</div>
+            <div class="faq-a" data-cms-field="faq2Answer">管理团队每天会固定时间集中审核入社申请表。通常在您提交后的 24-48 小时内完成审核，系统会立即自动触发邮件通知，请留意注册时填写的电子邮箱收件箱及垃圾邮件夹。</div>
           </div>
 
           <div class="faq-card">
-            <div class="faq-q">❓ 成为正式社员后有哪些专属权益？</div>
-            <div class="faq-a">解锁官网个人中心的社员身份认证证书勋章、专属工位预约权、GPU开发测试服务器节点申请、内部技术研讨会课件库及名企参访内推绿色通道。</div>
+            <div class="faq-q" data-cms-field="faq3Question">❓ 成为正式社员后有哪些专属权益？</div>
+            <div class="faq-a" data-cms-field="faq3Answer">解锁官网个人中心的社员身份认证证书勋章、专属工位预约权、GPU开发测试服务器节点申请、内部技术研讨会课件库及名企参访内推绿色通道。</div>
           </div>
 
           <div class="faq-card">
-            <div class="faq-q">❓ 可以同时跨领域参与多个项目吗？</div>
-            <div class="faq-a">完全可以！在申请阶段请选择您的第一意向方向。进入社团后，各类科技项目与品牌活动均采取跨领域自由组队机制，您可以随时与其他方向的伙伴跨界协作！</div>
+            <div class="faq-q" data-cms-field="faq4Question">❓ 可以同时跨领域参与多个项目吗？</div>
+            <div class="faq-a" data-cms-field="faq4Answer">完全可以！在申请阶段请选择您的第一意向方向。进入社团后，各类科技项目与品牌活动均采取跨领域自由组队机制，您可以随时与其他方向的伙伴跨界协作！</div>
           </div>
         </div>
       </div>
@@ -213,6 +213,7 @@
   <script src="/js/layout.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      loadSystemPageCMS('recruitment');
       checkRecruitmentUserStatus();
       loadActiveTemplateInfo();
     });

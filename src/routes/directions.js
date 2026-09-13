@@ -4,7 +4,7 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 const { query, getOne, execute } = require('../db/database');
 
 // 1. 获取所有活跃的发展意向方向（公开接口，供申请表下拉使用）
-router.get('/directions', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const rows = await query(
       'SELECT id, title, sort_order FROM development_directions WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
@@ -17,7 +17,7 @@ router.get('/directions', async (req, res) => {
 });
 
 // 2. 管理员获取完整方向列表（含非活跃项）
-router.get('/directions/manage', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+router.get('/manage', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const rows = await query('SELECT * FROM development_directions ORDER BY sort_order ASC, id ASC');
     res.json({ success: true, data: rows });
@@ -28,7 +28,7 @@ router.get('/directions/manage', authenticateToken, requireRole(['admin', 'super
 });
 
 // 3. 管理员新增方向
-router.post('/directions', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { title, sort_order } = req.body;
     if (!title || !title.trim()) {
@@ -46,7 +46,7 @@ router.post('/directions', authenticateToken, requireRole(['admin', 'super_admin
 });
 
 // 4. 管理员编辑方向
-router.put('/directions/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const { title, sort_order, is_active } = req.body;
     const existing = await getOne('SELECT * FROM development_directions WHERE id = ?', [req.params.id]);
@@ -65,7 +65,7 @@ router.put('/directions/:id', authenticateToken, requireRole(['admin', 'super_ad
 });
 
 // 5. 管理员删除方向
-router.delete('/directions/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const existing = await getOne('SELECT * FROM development_directions WHERE id = ?', [req.params.id]);
     if (!existing) {

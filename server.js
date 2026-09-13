@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const { initDatabase } = require('./src/db/database');
+const { initDatabase, cleanupReviewedSubmissions } = require('./src/db/database');
 
 const authRoutes = require('./src/routes/auth');
 const portalRoutes = require('./src/routes/portal');
@@ -95,6 +95,10 @@ app.use((err, req, res, next) => {
 async function startServer() {
   try {
     await initDatabase();
+    await cleanupReviewedSubmissions();
+    setInterval(() => {
+      cleanupReviewedSubmissions().catch(error => console.error('[Cleanup] 定时清理失败:', error));
+    }, 6 * 60 * 60 * 1000);
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n======================================================`);

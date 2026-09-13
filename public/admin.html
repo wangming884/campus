@@ -201,6 +201,30 @@
                   💾 保存修改并同步生效至官网主页
                 </button>
               </div>
+
+              <div class="form-section-title">📄 关于我们页面的社团介绍资料</div>
+              <div class="alert alert-info">
+                上传后会在关于我们页面显示下载入口。每次上传新文件都会自动替换旧文件，支持 PDF、Word、TXT、Markdown，最大 30MB。
+              </div>
+              <form id="form-about-document" onsubmit="handleAboutDocumentUpload(event)">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">资料显示名称</label>
+                    <input type="text" class="form-control" id="about-document-title" placeholder="如：社团介绍与发展手册">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">选择文件</label>
+                    <input type="file" class="form-control" id="about-document-file" accept=".pdf,.doc,.docx,.txt,.md" required>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                  <span id="about-document-current" style="font-size: 13px; color: var(--text-muted);">正在读取当前资料...</span>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="deleteAboutDocument()">🗑️ 删除当前资料</button>
+                    <button type="submit" class="btn btn-primary" id="btn-upload-about-document">📤 上传并替换资料</button>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -885,6 +909,47 @@
           <div class="form-group">
             <label class="form-label">页面正文内容 (支持 HTML / Markdown / 纯文本)</label>
             <textarea class="form-control" id="page-content-input" rows="7" placeholder="在此编写该页面的正文图文内容..."></textarea>
+          </div>
+
+          <div id="default-template-fields" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;">
+              <div style="font-weight: 800; color: var(--primary);">🎨 默认模板可视化编辑</div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="resetTemplateFields()">↺ 恢复默认模板</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">不懂 HTML 时可直接修改这些文字，保存后刷新前台即可生效。留空表示继续使用页面原有默认文案；带有“专属文案”的字段只会在对应页面显示。</div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">顶部小标签</label>
+                <input type="text" class="form-control" id="template-badge-input" placeholder="例如：ABOUT OUR CLUB">
+              </div>
+              <div class="form-group">
+                <label class="form-label">顶部主标题</label>
+                <input type="text" class="form-control" id="template-banner-title-input" placeholder="页面顶部大标题">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">顶部说明</label>
+              <textarea class="form-control" id="template-banner-description-input" rows="2" placeholder="页面顶部的介绍说明"></textarea>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">首个内容区标题</label>
+                <input type="text" class="form-control" id="template-intro-title-input" placeholder="页面正文区域标题">
+              </div>
+              <div class="form-group">
+                <label class="form-label">首个内容区正文</label>
+                <textarea class="form-control" id="template-intro-content-input" rows="2" placeholder="页面正文区域说明"></textarea>
+              </div>
+            </div>
+            <div id="template-specific-fields"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">完整页面自定义 HTML（填写后替换前台默认模板）</label>
+            <textarea class="form-control" id="page-content-html-input" rows="12" placeholder="可填写该社团专属的完整 HTML 页面内容；留空则继续使用系统默认模板。"></textarea>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">
+              支持常用 HTML 标签。系统页填写后，前台将以此内容为准，适合为不同社团快速定制官网。
+            </div>
           </div>
 
           <div class="modal-footer" style="padding: 14px 0 0; margin-top: 14px;">

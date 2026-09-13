@@ -308,8 +308,8 @@ router.get('/download-submission/:id', authenticateToken, async (req, res) => {
     if (!filePath || !fs.existsSync(filePath)) {
       // 磁盘文件名为「入社申请_用户名_时间戳.扩展名」，优先按磁盘名回退，其次按原始上传名
       const candidates = [
-        path.join(submissionsDir, path.basename(app.submission_filepath || '')),
-        path.join(submissionsDir, app.submission_filename || '')
+        app.submission_filepath ? path.join(submissionsDir, path.basename(app.submission_filepath)) : null,
+        app.submission_filename ? path.join(submissionsDir, app.submission_filename) : null
       ].filter(Boolean);
       filePath = candidates.find(p => fs.existsSync(p));
     }
@@ -342,8 +342,8 @@ router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
     let filePath = app.submission_filepath;
     if (!filePath || !fs.existsSync(filePath)) {
       const candidates = [
-        path.join(submissionsDir, path.basename(app.submission_filepath || '')),
-        path.join(submissionsDir, app.submission_filename || '')
+        app.submission_filepath ? path.join(submissionsDir, path.basename(app.submission_filepath)) : null,
+        app.submission_filename ? path.join(submissionsDir, app.submission_filename) : null
       ].filter(Boolean);
       filePath = candidates.find(p => fs.existsSync(p));
     }
