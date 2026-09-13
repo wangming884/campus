@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // 全局刷新数据
 async function refreshProfileData() {
+  loadDirectionsForDropdowns();
+  renderQuickActions();
+  renderAppTabActions();
   await Promise.allSettled([
     loadMyApplications(),
     loadProposals(),
@@ -282,6 +285,125 @@ function renderOverviewPane() {
         </div>
       `;
     }
+  }
+}
+
+// ==================== 快捷服务通道动态渲染 & 发展意向方向加载 ====================
+async function loadDirectionsForDropdowns() {
+  try {
+    const res = await apiRequest('/directions/directions');
+    if (res.success && res.data) {
+      const options = res.data.map(d =>
+        `<option value="${escapeHtml(d.title)}">${escapeHtml(d.title)}</option>`
+      ).join('');
+
+      const deptSelect = document.getElementById('app-target-dept');
+      if (deptSelect) {
+        deptSelect.innerHTML = `<option value="">-- 请选择申请意向方向 --</option>${options}`;
+      }
+
+      const adminSelect = document.getElementById('admin-app-direction');
+      if (adminSelect) {
+        adminSelect.innerHTML = `<option value="">-- 请选择发展意向方向 --</option>${options}`;
+      }
+    }
+  } catch (e) {
+    console.error('Load directions failed:', e);
+  }
+}
+
+function renderQuickActions() {
+  const grid = document.getElementById('quick-actions-grid');
+  if (!grid || !currentUser) return;
+
+  const isMember = ['member', 'admin', 'super_admin'].includes(currentUser.role);
+  const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
+
+  const btnStyle = 'justify-content:flex-start;padding:14px 16px;height:auto;';
+  const titleStyle = 'font-weight:700;color:#1e293b;font-size:14px;';
+  const descStyle = 'font-size:12px;color:#64748b;margin-top:2px;';
+
+  let actions = '';
+
+  if (!isMember && !isAdmin) {
+    actions += `
+      <button class="btn btn-outline" style="${btnStyle}" onclick="openModal('modal-submit-app')">
+        <div><div style="${titleStyle}">✍️ 递交入社申请</div><div style="${descStyle}">上传完整申请表附件</div></div>
+      </button>`;
+  }
+
+  if (isMember && !isAdmin) {
+    actions += `
+      <button class="btn btn-outline" style="${btnStyle};border-color:#f59e0b;" onclick="openModal('modal-apply-admin')">
+        <div><div style="${titleStyle}">👑 申请晋升管理员</div><div style="${descStyle}">意向申请发展方向</div></div>
+      </button>`;
+  }
+
+  actions += `
+    <button class="btn btn-outline" style="${btnStyle}" onclick="openNewProposalModal()">
+      <div><div style="${titleStyle}">💡 发起活动共创</div><div style="${descStyle}">民主提议技术沙龙</div></div>
+    </button>
+
+    <button class="btn btn-outline" style="${btnStyle}" onclick="switchProfileTab('messages')">
+      <div><div style="${titleStyle}">💬 社内畅聊提问</div><div style="${descStyle}">向管理团队提出疑问</div></div>
+    </button>
+
+    <a href="/api/applications/template/download" class="btn btn-outline" style="${btnStyle}" download>
+      <div><div style="${titleStyle}">📥 下载申请模板</div><div style="${descStyle}">最新 .docx 规范样表</div></div>
+    </a>`;
+
+  grid.innerHTML = actions;
+}
+
+function renderAppTabActions() {
+  const container = document.getElementById('app-tab-actions');
+  if (!container || !currentUser) return;
+
+  const isMember = ['member', 'admin', 'super_admin'].includes(currentUser.role);
+  const isAdmin = ['admin', 'super_admin'].includes(currentUser.role);
+
+  let html = '<a href="/api/applications/template/download" class="btn btn-outline btn-sm" download>📥 下载申请表模板</a>';
+
+  if (!isMember && !isAdmin) {
+    html += '<button class="btn btn-primary btn-sm" onclick="openModal(\'modal-submit-app\')">✍️ 提交/补充申请表</button>';
+  }
+
+  if (isMember && !isAdmin) {
+    html += '<button class="btn btn-primary btn-sm" onclick="openModal(\'modal-apply-admin\')" style="background:#f59e0b;border-color:#f59e0b;">👑 申请晋升管理员</button>';
+  }
+
+  container.innerHTML = html;
+}
+
+async function handleAdminApplicationSubmit(e) {
+  e.preventDefault();
+  const direction = document.getElementById('admin-app-direction').value;
+  const reason = document.getElementById('admin-app-reason').value;
+
+  if (!direction) {
+    showToast('请选择意向申请发展方向', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-apply-admin-action');
+  btn.disabled = true;
+  btn.innerText = '正在提交...';
+
+  try {
+    const res = await apiRequest('/directions/role-applications', {
+      method: 'POST',
+      body: JSON.stringify({ target_direction: direction, reason })
+    });
+    if (res.success) {
+      showToast(res.message, 'success');
+      closeModal('modal-apply-admin');
+      document.getElementById('form-apply-admin').reset();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '提交晋升申请';
   }
 }
 

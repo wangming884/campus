@@ -252,6 +252,34 @@ async function createMySQLTables() {
       UNIQUE KEY uk_proposal_user (proposal_id, user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS development_directions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(200) NOT NULL,
+      sort_order INT DEFAULT 0,
+      is_active TINYINT DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS role_applications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      user_name VARCHAR(100) NOT NULL,
+      user_email VARCHAR(191) NOT NULL,
+      current_role VARCHAR(50) NOT NULL,
+      target_role VARCHAR(50) NOT NULL DEFAULT 'admin',
+      target_direction VARCHAR(200),
+      reason TEXT,
+      status VARCHAR(50) DEFAULT 'pending',
+      reviewer_id INT,
+      review_notes TEXT,
+      reviewed_at DATETIME,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
 }
 
 // 预置 MySQL 种子数据
@@ -537,6 +565,22 @@ async function seedMySQLData() {
       '1. 场地投影与网络环境提前联调\n2. 社团提供20套开源鸿蒙开发套件供现场编组实操\n3. 现场茶歇准备与参会极客贴纸派发\n4. 设立现场最佳实战Demo评优奖励'
     ]);
   }
+
+  // 9. 初始化发展意向方向 (development_directions)
+  const [dirCount] = await pool.query('SELECT COUNT(*) as count FROM development_directions');
+  if (dirCount[0].count === 0) {
+    const defaultDirections = [
+      { title: '前沿全栈与AI研发方向 (Web/AI/嵌入式/云原生)', sort_order: 1 },
+      { title: '高水平科技竞赛方向 (中国国际创新大赛/挑战杯/算法黑客松)', sort_order: 2 },
+      { title: '创意策划与大型活动方向 (科技沙龙/创客黑客松/破冰)', sort_order: 3 },
+      { title: '融媒宣传与品牌运营方向 (摄影/设计/推文/视频/新媒体)', sort_order: 4 },
+      { title: '综合组织与实践外联方向 (社员档案/物资保障/企业赞助)', sort_order: 5 }
+    ];
+
+    for (const d of defaultDirections) {
+      await pool.query('INSERT INTO development_directions (title, sort_order, is_active) VALUES (?, ?, 1)', [d.title, d.sort_order]);
+    }
+  }
 }
 
 // 统一异步查询适配器
@@ -711,7 +755,45 @@ function initFallbackSQLite() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE (proposal_id, user_id)
     );
+    CREATE TABLE IF NOT EXISTS development_directions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS role_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      user_name TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      current_role TEXT NOT NULL,
+      target_role TEXT NOT NULL DEFAULT 'admin',
+      target_direction TEXT,
+      reason TEXT,
+      status TEXT DEFAULT 'pending',
+      reviewer_id INTEGER,
+      review_notes TEXT,
+      reviewed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // 为 SQLite 应急引擎预置 5 个默认发展方向
+  const dirCount = sqliteDb.prepare('SELECT COUNT(*) as c FROM development_directions').get();
+  if (!dirCount || dirCount.c === 0) {
+    const dirs = [
+      { title: '前沿全栈与AI研发方向 (Web/AI/嵌入式/云原生)', sort_order: 1 },
+      { title: '高水平科技竞赛方向 (中国国际创新大赛/挑战杯/算法黑客松)', sort_order: 2 },
+      { title: '创意策划与大型活动方向 (科技沙龙/创客黑客松/破冰)', sort_order: 3 },
+      { title: '融媒宣传与品牌运营方向 (摄影/设计/推文/视频/新媒体)', sort_order: 4 },
+      { title: '综合组织与实践外联方向 (社员档案/物资保障/企业赞助)', sort_order: 5 }
+    ];
+    const insertStmt = sqliteDb.prepare('INSERT INTO development_directions (title, sort_order, is_active) VALUES (?, ?, 1)');
+    for (const d of dirs) {
+      insertStmt.run(d.title, d.sort_order);
+    }
+  }
 }
 
 function sqliteQuery(sql, params = []) {

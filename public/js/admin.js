@@ -97,7 +97,9 @@ function switchAdminTab(tabName) {
     proposals: '🎯 社团活动提案审核与举办决议中心',
     messages: '💬 成员交流留言与官方答复中心',
     users: '👥 全体成员目录与 RBAC 权限调度',
-    mail: '📧 邮件服务配置与发信日志模拟器'
+    mail: '📧 邮件服务配置与发信日志模拟器',
+    directions: '🎯 发展意向方向选项管理',
+    'role-applications': '🔄 社团成员晋升管理员申请审核'
   };
   document.getElementById('topbar-page-title').innerHTML = `<span>${titleMap[tabName] || '管理后台'}</span>`;
 
@@ -112,6 +114,8 @@ function switchAdminTab(tabName) {
     case 'messages': loadMessagesAdmin(); break;
     case 'users': loadUsers(); break;
     case 'mail': loadMailSettingsAndLogs(); break;
+    case 'directions': loadDirectionsAdmin(); break;
+    case 'role-applications': loadRoleApplicationsAdmin(); break;
   }
 }
 
@@ -293,9 +297,14 @@ async function loadApplications() {
           </td>
           <td><span class="badge badge-admin">${escapeHtml(app.target_dept || '未指定')}</span></td>
           <td>
-            <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download title="下载查看填写的申请表">
-              📥 下载申请表
-            </a>
+            <div style="display: flex; gap: 6px;">
+              <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download title="下载查看填写的申请表">
+                📥 下载
+              </a>
+              <button class="btn btn-outline btn-sm" onclick="previewSubmission(${app.id})" title="在线预览申请表内容">
+                👁️ 预览
+              </button>
+            </div>
           </td>
           <td style="font-size: 12.5px; color: var(--text-muted);">${formatDateTime(app.created_at)}</td>
           <td>${getStatusBadge(app.status)}</td>
@@ -331,9 +340,14 @@ function openReviewModal(appId) {
     ${app.statement ? `<div style="margin-top: 8px; font-size: 13px; background: #ffffff; padding: 8px 12px; border-radius: 4px; border: 1px solid #e2e8f0;"><strong>个人特长/自述：</strong>${escapeHtml(app.statement)}</div>` : ''}
     <div style="margin-top: 10px;">
       <strong>申请表附件：</strong>
-      <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download>
-        📥 下载附件 (${escapeHtml(app.submission_filename || '申请表')})
-      </a>
+      <div style="display: flex; gap: 6px; margin-top: 6px;">
+        <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download>
+          📥 下载附件 (${escapeHtml(app.submission_filename || '申请表')})
+        </a>
+        <button class="btn btn-outline btn-sm" onclick="previewSubmission(${app.id})">
+          👁️ 在线预览
+        </button>
+      </div>
     </div>
     ${app.reviewer_name ? `
       <div style="margin-top: 8px; font-size: 12.5px; color: var(--text-muted); border-top: 1px dashed #cbd5e1; padding-top: 6px;">
@@ -346,6 +360,59 @@ function openReviewModal(appId) {
   document.getElementById('review-notes').value = app.review_notes || (app.status === 'pending' ? '欢迎加入社团，期待你的精彩表现！' : '');
 
   openModal('modal-review-app');
+}
+
+function previewSubmission(appId) {
+  const app = cachedApplications.find(a => a.id == appId);
+  if (!app) return;
+
+  const filename = app.submission_filename || '申请表';
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  const token = getToken();
+  const previewUrl = `/api/applications/preview-submission/${appId}?token=${encodeURIComponent(token || '')}`;
+  const downloadUrl = `/api/applications/download-submission/${appId}?token=${encodeURIComponent(token || '')}`;
+
+  document.getElementById('preview-file-name').innerText = filename;
+  document.getElementById('preview-download-link').href = downloadUrl;
+
+  const container = document.getElementById('preview-container');
+  container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);"><div class="loading-spinner" style="margin: 0 auto 16px;"></div>正在加载文件预览...</div>`;
+
+  if (ext === 'pdf') {
+    container.innerHTML = `<iframe src="${previewUrl}" style="width: 100%; min-height: 70vh; border: none;" onload="this.style.opacity='1';" onerror="document.getElementById('preview-container').innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ PDF 加载失败，请尝试下载后查看</div>'"></iframe>`;
+  } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext)) {
+    container.innerHTML = `<div style="text-align: center; padding: 20px; overflow: auto; max-height: 75vh;"><img src="${previewUrl}" alt="${filename}" style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);" onload="this.style.opacity='1';" onerror="this.parentElement.innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ 图片加载失败</div>'"></div>`;
+  } else if (ext === 'txt') {
+    fetch(previewUrl)
+      .then(r => r.text())
+      .then(text => {
+        container.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; padding: 20px; margin: 0; font-size: 14px; line-height: 1.7; max-height: 70vh; overflow-y: auto; background: #fff;">${escapeHtml(text)}</pre>`;
+      })
+      .catch(() => {
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--danger)">❌ 文本加载失败</div>`;
+      });
+  } else if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📑</div>
+        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 6px;">该文件为 Office 文档格式 (.${ext.toUpperCase()})</div>
+        <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">浏览器不支持直接预览 Word / Excel 文件</div>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <a href="${previewUrl}" class="btn btn-outline btn-sm" target="_blank">🔗 尝试浏览器打开</a>
+          <a href="${downloadUrl}" class="btn btn-primary btn-sm" download>📥 立即下载</a>
+        </div>
+      </div>`;
+  } else {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📎</div>
+        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 6px;">该文件格式不支持在线预览</div>
+        <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">请下载后在本地使用对应软件打开</div>
+        <a href="${downloadUrl}" class="btn btn-primary" download>📥 下载文件</a>
+      </div>`;
+  }
+
+  openModal('modal-preview-submission');
 }
 
 async function handleReviewSubmit(e) {
@@ -411,6 +478,7 @@ async function loadTemplates() {
               <a href="/api/applications/template/download/${tpl.id}" class="btn btn-outline btn-sm" download>📥 下载</a>
               ${!tpl.is_active ? `
                 <button class="btn btn-primary btn-sm" onclick="setActiveTemplate(${tpl.id})">设为默认</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${tpl.id})">🗑️ 删除</button>
               ` : ''}
             </div>
           </td>
@@ -462,6 +530,27 @@ async function setActiveTemplate(templateId) {
   try {
     const res = await apiRequest(`/applications/templates/${templateId}/active`, {
       method: 'PUT'
+    });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadTemplates();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function deleteTemplate(templateId) {
+  const tpl = cachedTemplates.find(t => t.id === templateId);
+  const name = tpl ? `「${tpl.title}」` : `#${templateId}`;
+
+  if (!confirm(`⚠️ 确定要永久删除模板 ${name} 吗？\n\n此操作将同时移除服务器上的模板文件，且不可恢复！`)) {
+    return;
+  }
+
+  try {
+    const res = await apiRequest(`/applications/templates/${templateId}`, {
+      method: 'DELETE'
     });
     if (res.success) {
       showToast(res.message, 'success');
@@ -1387,6 +1476,165 @@ async function deleteUserAccount(userId) {
 
     if (res.success) {
       showToast(res.message, 'success', 6000);
+      loadUsers();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+// ==================== 10.5 发展意向方向管理 ====================
+let cachedDirections = [];
+
+async function loadDirectionsAdmin() {
+  const tbody = document.getElementById('directions-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;">加载中...</td></tr>';
+
+  try {
+    const res = await apiRequest('/directions/manage');
+    if (res.success) {
+      cachedDirections = res.data || [];
+      if (cachedDirections.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">暂无发展方向选项，请点击「新增方向」</td></tr>';
+        return;
+      }
+      tbody.innerHTML = cachedDirections.map((d, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td style="font-weight:600;">${escapeHtml(d.title)}</td>
+          <td>${d.sort_order}</td>
+          <td>${d.is_active ? '<span class="badge badge-success">启用</span>' : '<span class="badge" style="background:#f1f5f9;color:#64748b;">停用</span>'}</td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-outline btn-sm" onclick="openEditDirectionModal(${d.id})">✏️ 编辑</button>
+              <button class="btn btn-outline btn-sm" onclick="toggleDirectionActive(${d.id})" style="color:${d.is_active ? '#d97706' : '#059669'};border-color:${d.is_active ? '#d97706' : '#059669'};">${d.is_active ? '停用' : '启用'}</button>
+              <button class="btn btn-outline btn-sm" onclick="deleteDirection(${d.id})" style="color:#ef4444;border-color:#ef4444;">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--danger);">加载失败: ${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+function openAddDirectionModal() {
+  const title = prompt('请输入新的发展意向方向标题：');
+  if (!title || !title.trim()) return;
+  const order = prompt('请输入排序序号（数字越大越靠后，默认 0）：', '0');
+  saveDirection({ title: title.trim(), sort_order: parseInt(order) || 0 });
+}
+
+function openEditDirectionModal(dirId) {
+  const d = cachedDirections.find(x => x.id === dirId);
+  if (!d) return;
+  const title = prompt('修改方向标题：', d.title);
+  if (title === null) return;
+  const order = prompt('修改排序序号：', d.sort_order);
+  if (order === null) return;
+  const active = confirm('该方向是否设为「启用」状态？\n\n点「确定」= 启用，点「取消」= 停用');
+  saveDirection({ id: dirId, title: title.trim(), sort_order: parseInt(order) || 0, is_active: active ? 1 : 0 });
+}
+
+async function saveDirection(data) {
+  try {
+    const method = data.id ? 'PUT' : 'POST';
+    const url = data.id ? `/directions/${data.id}` : '/directions';
+    if (data.id) delete data.id;
+    const res = await apiRequest(url, { method, body: JSON.stringify(data) });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadDirectionsAdmin();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function toggleDirectionActive(dirId) {
+  const d = cachedDirections.find(x => x.id === dirId);
+  if (!d) return;
+  try {
+    const res = await apiRequest(`/directions/${dirId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_active: d.is_active ? 0 : 1 })
+    });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadDirectionsAdmin();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function deleteDirection(dirId) {
+  const d = cachedDirections.find(x => x.id === dirId);
+  if (!d) return;
+  if (!confirm(`确定要删除发展方向「${d.title}」吗？`)) return;
+  try {
+    const res = await apiRequest(`/directions/${dirId}`, { method: 'DELETE' });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadDirectionsAdmin();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+// ==================== 10.6 角色升级申请审核 ====================
+async function loadRoleApplicationsAdmin() {
+  const tbody = document.getElementById('role-apps-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;">加载中...</td></tr>';
+
+  try {
+    const res = await apiRequest('/directions/role-applications');
+    if (res.success) {
+      const apps = res.data || [];
+      if (apps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">暂无角色升级申请</td></tr>';
+        return;
+      }
+      const statusMap = { pending: '⏳ 待审核', approved: '✅ 已批准', rejected: '❌ 已驳回' };
+      tbody.innerHTML = apps.map(a => `
+        <tr>
+          <td style="font-weight:600;">${escapeHtml(a.user_name)}</td>
+          <td>${escapeHtml(a.user_email)}</td>
+          <td>${getRoleBadge(a.current_role)}</td>
+          <td>${escapeHtml(a.target_direction)}</td>
+          <td style="max-width:200px;white-space:pre-wrap;font-size:13px;">${escapeHtml(a.reason || '-')}</td>
+          <td style="font-size:12px;color:var(--text-muted);">${formatDateTime(a.created_at)}</td>
+          <td>${statusMap[a.status] || a.status}</td>
+          <td>
+            ${a.status === 'pending' ? `
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-success btn-sm" onclick="reviewRoleApplication(${a.id},'approved')">✅ 批准晋升</button>
+                <button class="btn btn-danger btn-sm" onclick="reviewRoleApplication(${a.id},'rejected')">❌ 驳回</button>
+              </div>
+            ` : (a.review_notes ? `<span style="font-size:12px;color:var(--text-muted);">${escapeHtml(a.review_notes.substring(0,30))}...</span>` : '<span style="font-size:12px;color:var(--text-muted);">-</span>')}
+          </td>
+        </tr>
+      `).join('');
+    }
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--danger);">加载失败: ${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+async function reviewRoleApplication(appId, status) {
+  const notes = status === 'approved' ? '经管理组审核，批准晋升为管理员！' : (prompt('请输入驳回理由（可选）：') || '未通过管理员审核');
+  try {
+    const res = await apiRequest(`/directions/role-applications/${appId}/review`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, notes })
+    });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadRoleApplicationsAdmin();
       loadUsers();
     }
   } catch (error) {

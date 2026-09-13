@@ -179,7 +179,7 @@
                 <div class="card-title">⚡ 极客快捷服务通道</div>
               </div>
               <div class="card-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" id="quick-actions-grid">
                   <button class="btn btn-outline" style="justify-content: flex-start; padding: 14px 16px; height: auto;" onclick="openModal('modal-submit-app')">
                     <div>
                       <div style="font-weight: 700; color: #1e293b; font-size: 14px;">✍️ 递交入社申请</div>
@@ -218,7 +218,7 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">📋 我的入社申请进度与阅卷反馈</div>
-              <div style="display: flex; gap: 10px;">
+              <div style="display: flex; gap: 10px;" id="app-tab-actions">
                 <a href="/api/applications/template/download" class="btn btn-outline btn-sm" download>📥 下载申请表模板</a>
                 <button class="btn btn-primary btn-sm" onclick="openModal('modal-submit-app')">✍️ 提交/补充申请表</button>
               </div>
@@ -512,12 +512,7 @@
           <div class="form-group">
             <label class="form-label">意向申请发展方向 <span class="required">*</span></label>
             <select class="form-control" id="app-target-dept" required>
-              <option value="">-- 请选择申请意向方向 --</option>
-              <option value="前沿全栈与AI研发方向">前沿全栈与AI研发方向 (Web/AI/嵌入式/云原生)</option>
-              <option value="高水平科技竞赛方向">高水平科技竞赛方向 (中国国际创新大赛/挑战杯/算法黑客松)</option>
-              <option value="创意策划与大型活动方向">创意策划与大型活动方向 (科技沙龙/创客黑客松/破冰)</option>
-              <option value="融媒宣传与品牌运营方向">融媒宣传与品牌运营方向 (摄影/设计/推文/视频/新媒体)</option>
-              <option value="综合组织与实践外联方向">综合组织与实践外联方向 (社员档案/物资保障/企业赞助)</option>
+              <option value="">-- 加载发展意向方向中...</option>
             </select>
           </div>
 
@@ -537,6 +532,34 @@
           </div>
 
           <button type="submit" class="btn btn-primary" id="btn-submit-action" style="width: 100%;">确认提交入社申请</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 社团成员申请升级为管理员模态弹窗 -->
+  <div class="modal-overlay" id="modal-apply-admin">
+    <div class="modal-container" style="max-width: 530px;">
+      <div class="modal-header">
+        <h3 class="modal-title">👑 申请晋升管理员</h3>
+        <button class="modal-close" onclick="closeModal('modal-apply-admin')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          💡 <strong>晋升须知：</strong>正式社团成员可申请晋升为管理员。请选择您的意向发展方向并简述申请理由，管理团队将在 3 个工作日内审核。
+        </div>
+        <form id="form-apply-admin" onsubmit="handleAdminApplicationSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">意向申请发展方向 <span class="required">*</span></label>
+            <select class="form-control" id="admin-app-direction" required>
+              <option value="">-- 加载中...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">申请理由 / 个人优势陈述</label>
+            <textarea class="form-control" id="admin-app-reason" rows="4" placeholder="请简述您为何希望成为管理员？例如：管理经验、技术专长、组织策划能力等..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="btn-apply-admin-action" style="width:100%;">提交晋升申请</button>
         </form>
       </div>
     </div>

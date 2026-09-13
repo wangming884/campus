@@ -182,7 +182,36 @@ router.put('/templates/:id/active', authenticateToken, requireRole(['admin', 'su
   }
 });
 
-// 6. 普通用户上传填写好的入社申请表并提交审核
+// 6. 管理员删除申请表模板（同时删除文件和历史记录）
+router.delete('/templates/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const template = await getOne('SELECT * FROM application_templates WHERE id = ?', [templateId]);
+    if (!template) {
+      return res.status(404).json({ success: false, message: '模板不存在' });
+    }
+
+    if (template.is_active) {
+      return res.status(400).json({ success: false, message: '当前生效的模板不可删除，请先将其他模板设为默认后再删除' });
+    }
+
+    if (template.filepath && fs.existsSync(template.filepath)) {
+      fs.unlinkSync(template.filepath);
+    } else {
+      const fallback = path.join(templatesDir, template.filename || path.basename(template.filepath || ''));
+      if (fs.existsSync(fallback)) fs.unlinkSync(fallback);
+    }
+
+    await execute('DELETE FROM application_templates WHERE id = ?', [templateId]);
+
+    res.json({ success: true, message: '模板已彻底从历史库中删除' });
+  } catch (error) {
+    console.error('Delete template error:', error);
+    res.status(500).json({ success: false, message: '删除模板失败: ' + error.message });
+  }
+});
+
+// 7. 普通用户上传填写好的入社申请表并提交审核
 router.post('/submit', authenticateToken, uploadSubmission.single('file'), async (req, res) => {
   try {
     const user = req.user;
@@ -293,6 +322,58 @@ router.get('/download-submission/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).send('下载失败');
+  }
+});
+
+// 8b. 在线预览用户提交的申请表附件（不触发下载，直接在浏览器中展示）
+router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
+  try {
+    const app = await getOne('SELECT * FROM membership_applications WHERE id = ?', [req.params.id]);
+    if (!app) {
+      return res.status(404).send('申请记录不存在');
+    }
+
+    const isOwner = app.user_id == req.user.id;
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).send('无权查看该申请表');
+    }
+
+    let filePath = app.submission_filepath;
+    if (!filePath || !fs.existsSync(filePath)) {
+      const candidates = [
+        path.join(submissionsDir, path.basename(app.submission_filepath || '')),
+        path.join(submissionsDir, app.submission_filename || '')
+      ].filter(Boolean);
+      filePath = candidates.find(p => fs.existsSync(p));
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).send('申请表文件已丢失或不存在');
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap = {
+      '.pdf': 'application/pdf',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.txt': 'text/plain; charset=utf-8',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls': 'application/vnd.ms-excel',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+
+    const contentType = mimeMap[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(app.submission_filename || '') + '"');
+    fs.createReadStream(filePath).pipe(res);
+  } catch (error) {
+    console.error('Preview submission error:', error);
+    res.status(500).send('预览失败');
   }
 });
 
