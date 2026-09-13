@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加载中... - 高校学生社团</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal.css">
+  <style>
+    .custom-page-hero {
+      position: relative;
+      padding: 70px 20px 50px;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .custom-page-container {
+      max-width: 960px;
+      margin: 40px auto 80px;
+      padding: 0 20px;
+    }
+    .custom-content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 44px;
+      box-shadow: var(--shadow-md);
+      line-height: 1.85;
+      font-size: 16px;
+      color: var(--text-main);
+    }
+    .custom-meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 统一顶部导航 -->
+  <header id="shared-header" class="portal-header"></header>
+
+  <!-- 页面横幅 -->
+  <section class="custom-page-hero">
+    <div class="container">
+      <div class="hero-badge" id="custom-page-badge" style="margin-bottom: 12px;">🌟 社团官方专区</div>
+      <h1 class="hero-title" id="custom-page-title" style="font-size: 38px; margin-bottom: 12px;">加载中...</h1>
+      <p class="hero-subtitle" id="custom-page-desc" style="max-width: 720px; margin: 0 auto; font-size: 16px;">正在拉取页面数据...</p>
+      <div class="custom-meta-bar">
+        <span id="custom-page-date"></span>
+        <span id="custom-page-path"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页面正文 -->
+  <main class="custom-page-container">
+    <div class="custom-content-card" id="custom-content-body">
+      <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+        <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
+        <div>正在载入页面内容，请稍候...</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 统一页脚 -->
+  <footer id="shared-footer" class="portal-footer"></footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/layout.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const pathParts = window.location.pathname.split('/page/');
+      const slug = pathParts[1] ? pathParts[1].replace(/\/$/, '') : '';
+
+      if (!slug) {
+        renderError('未指定页面标识 (Slug)');
+        return;
+      }
+
+      try {
+        const res = await apiRequest(`/pages/${encodeURIComponent(slug)}`);
+        if (res.success && res.data) {
+          const page = res.data;
+          document.title = `${page.title} - 高校学生社团`;
+          document.getElementById('custom-page-title').innerText = page.title;
+          document.getElementById('custom-page-desc').innerText = page.seo_description || '青年极客创新工坊专属空间';
+          document.getElementById('custom-page-date').innerText = `🕒 最后更新：${formatDateTime(page.updated_at || page.created_at)}`;
+          document.getElementById('custom-page-path').innerText = `🔗 路由：${page.path}`;
+
+          const contentBody = document.getElementById('custom-content-body');
+          if (page.content) {
+            // 支持富文本 HTML 或多段落换行文本
+            if (page.content.includes('<') && page.content.includes('>')) {
+              contentBody.innerHTML = page.content;
+            } else {
+              contentBody.innerHTML = `<div style="white-space: pre-wrap;">${escapeHtml(page.content)}</div>`;
+            }
+          } else {
+            contentBody.innerHTML = `
+              <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                暂无正文内容，管理员可在后台编辑本页面。
+              </div>
+            `;
+          }
+        } else {
+          renderError(res.message || '未找到该页面');
+        }
+      } catch (err) {
+        renderError('加载页面失败: ' + err.message);
+      }
+    });
+
+    function renderError(msg) {
+      document.title = '页面未找到 - 高校学生社团';
+      document.getElementById('custom-page-title').innerText = '404 页面未找到';
+      document.getElementById('custom-page-desc').innerText = msg;
+      document.getElementById('custom-content-body').innerHTML = `
+        <div style="text-align: center; padding: 60px 20px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+          <h3 style="font-size: 20px; margin-bottom: 12px;">抱歉，未能找到您请求的网页</h3>
+          <p style="color: var(--text-muted); margin-bottom: 24px;">该页面可能已被管理员移除或修改了访问路径。</p>
+          <a href="/" class="btn btn-primary">返回官网首页</a>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

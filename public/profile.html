@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人工作台与社员专区 - 高校学生极客社团</title>
+  <meta name="description" content="高校学生社团个人中心与社员工作台，涵盖入社申请进度追踪、社员数字认证凭证、活动提案民主投票、社内留言交流与专享通知。">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/profile.css">
+  <script>
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+    window.escapeHtml = escapeHtml;
+  </script>
+</head>
+<body>
+
+  <div class="admin-layout">
+    <!-- 移动端遮罩层 -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- 左侧深色侧边栏导航 -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-icon">🚀</div>
+        <div>
+          <div class="sidebar-brand-title">极客工作台</div>
+          <div class="sidebar-brand-desc">社员服务与个人中枢</div>
+        </div>
+      </div>
+
+      <!-- 用户卡片 -->
+      <div class="sidebar-user-card">
+        <div class="user-avatar-circle" id="sidebar-user-avatar">U</div>
+        <div class="user-info-text">
+          <div class="user-name" id="sidebar-user-name">加载中...</div>
+          <div id="sidebar-user-badge" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <!-- 导航列表 -->
+      <nav class="sidebar-nav">
+        <div class="nav-item active" onclick="switchProfileTab('overview')" id="nav-tab-overview">
+          <span class="nav-item-icon">📊</span>
+          <span>工作台总览</span>
+        </div>
+        <div class="nav-item" onclick="switchProfileTab('application')" id="nav-tab-application">
+          <span class="nav-item-icon">📋</span>
+          <span>入社申请追踪</span>
+        </div>
+        <div class="nav-item" onclick="switchProfileTab('profile')" id="nav-tab-profile">
+          <span class="nav-item-icon">👤</span>
+          <span>个人资料设置</span>
+        </div>
+        <div class="nav-item" onclick="switchProfileTab('proposals')" id="nav-tab-proposals">
+          <span class="nav-item-icon">🎯</span>
+          <span>活动共创提案</span>
+        </div>
+        <div class="nav-item" onclick="switchProfileTab('messages')" id="nav-tab-messages">
+          <span class="nav-item-icon">💬</span>
+          <span>社内交流留言</span>
+        </div>
+        <div class="nav-item" onclick="switchProfileTab('notices')" id="nav-tab-notices">
+          <span class="nav-item-icon">🔒</span>
+          <span>专属规章通知</span>
+        </div>
+      </nav>
+
+      <!-- 底部快捷操作 -->
+      <div class="sidebar-footer">
+        <div id="sidebar-admin-slot" style="display: none; margin-bottom: 6px;">
+          <a href="/admin" class="btn btn-primary btn-sm" style="width: 100%; justify-content: center;">
+            🛡️ 进入管理后台
+          </a>
+        </div>
+        <a href="/" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent; justify-content: center;">
+          🌐 返回官网主页
+        </a>
+        <button class="btn btn-danger btn-sm" onclick="logout()" style="justify-content: center;">
+          🚪 退出当前登录
+        </button>
+      </div>
+    </aside>
+
+    <!-- 主工作区 -->
+    <main class="admin-main">
+      <!-- 顶部操作栏 -->
+      <header class="admin-topbar">
+        <div style="display: flex; align-items: center;">
+          <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" title="打开菜单">
+            ☰
+          </button>
+          <div class="topbar-title" id="topbar-page-title">
+            <div>
+              <div style="font-size: 18px; font-weight: 800; color: #1e293b;">📊 工作台总览与社员数字中枢</div>
+              <div style="font-size: 12px; font-weight: 400; color: #64748b; margin-top: 2px;">个人综合状态概览、特权凭据与快捷服务</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <a href="/api/applications/template/download" class="btn btn-outline btn-sm" download>
+            📥 下载申请表模板
+          </a>
+          <button class="btn btn-outline btn-sm" onclick="refreshProfileData()">
+            🔄 刷新数据
+          </button>
+          <div id="topbar-user-chip" style="margin-left: 6px;"></div>
+        </div>
+      </header>
+
+      <!-- 工作台主内容 -->
+      <div class="admin-content">
+
+        <!-- ==================== Tab 1: 工作台总览 ==================== -->
+        <div class="tab-pane active" id="pane-overview">
+          <!-- 统计指标小卡片 -->
+          <div class="stat-mini-grid">
+            <div class="stat-mini-card">
+              <div>
+                <div class="stat-mini-num" id="stat-user-role" style="font-size: 18px;">-</div>
+                <div class="stat-mini-label">当前账户认证身份</div>
+              </div>
+              <div style="font-size: 32px;">🪪</div>
+            </div>
+
+            <div class="stat-mini-card">
+              <div>
+                <div class="stat-mini-num" id="stat-app-status" style="font-size: 18px;">-</div>
+                <div class="stat-mini-label">入社申请审核进度</div>
+              </div>
+              <div style="font-size: 32px;">📋</div>
+            </div>
+
+            <div class="stat-mini-card">
+              <div>
+                <div class="stat-mini-num" id="stat-active-proposals">0</div>
+                <div class="stat-mini-label">火热投票中活动提案</div>
+              </div>
+              <div style="font-size: 32px;">🗳️</div>
+            </div>
+
+            <div class="stat-mini-card">
+              <div>
+                <div class="stat-mini-num" id="stat-total-messages">0</div>
+                <div class="stat-mini-label">社内成员交流互动帖</div>
+              </div>
+              <div style="font-size: 32px;">💬</div>
+            </div>
+          </div>
+
+          <!-- 官方社员数字认证卡片插槽 (社员展示流金翡翠证，普通用户展示待解锁卡) -->
+          <div id="overview-cert-slot"></div>
+
+          <!-- 下方两列栅格：最新申请动态 + 极客快捷通道 -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+            <!-- 申请动态速览 -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📋 我的入社申请动态</div>
+                <button class="btn btn-outline btn-sm" onclick="switchProfileTab('application')">完整追踪 &rarr;</button>
+              </div>
+              <div class="card-body" id="overview-app-preview">
+                <div style="text-align: center; padding: 20px; color: #64748b;">加载申请数据中...</div>
+              </div>
+            </div>
+
+            <!-- 极客快捷服务矩阵 -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">⚡ 极客快捷服务通道</div>
+              </div>
+              <div class="card-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <button class="btn btn-outline" style="justify-content: flex-start; padding: 14px 16px; height: auto;" onclick="openModal('modal-submit-app')">
+                    <div>
+                      <div style="font-weight: 700; color: #1e293b; font-size: 14px;">✍️ 递交入社申请</div>
+                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">上传完整申请表附件</div>
+                    </div>
+                  </button>
+
+                  <button class="btn btn-outline" style="justify-content: flex-start; padding: 14px 16px; height: auto;" onclick="openNewProposalModal()">
+                    <div>
+                      <div style="font-weight: 700; color: #1e293b; font-size: 14px;">💡 发起活动共创</div>
+                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">民主提议技术沙龙</div>
+                    </div>
+                  </button>
+
+                  <button class="btn btn-outline" style="justify-content: flex-start; padding: 14px 16px; height: auto;" onclick="switchProfileTab('messages')">
+                    <div>
+                      <div style="font-weight: 700; color: #1e293b; font-size: 14px;">💬 社内畅聊提问</div>
+                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">向管理团队提出疑问</div>
+                    </div>
+                  </button>
+
+                  <a href="/api/applications/template/download" class="btn btn-outline" style="justify-content: flex-start; padding: 14px 16px; height: auto;" download>
+                    <div>
+                      <div style="font-weight: 700; color: #1e293b; font-size: 14px;">📥 下载申请模板</div>
+                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">最新 .docx 规范样表</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 2: 入社申请追踪 ==================== -->
+        <div class="tab-pane" id="pane-application">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📋 我的入社申请进度与阅卷反馈</div>
+              <div style="display: flex; gap: 10px;">
+                <a href="/api/applications/template/download" class="btn btn-outline btn-sm" download>📥 下载申请表模板</a>
+                <button class="btn btn-primary btn-sm" onclick="openModal('modal-submit-app')">✍️ 提交/补充申请表</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info">
+                💡 <strong>录取全透明流程：</strong>您提交申请表后，各方向评委组将在 1-3 个工作日内阅卷。审核通过后，系统将自动向您的注册邮箱发送录取通知，并同步点亮社员身份勋章！
+              </div>
+
+              <div id="application-status-container">
+                <div style="text-align: center; padding: 40px; color: #64748b;">正在查询申请进度与反馈...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 3: 个人资料设置 ==================== -->
+        <div class="tab-pane" id="pane-profile">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">👤 维护个人基本学籍与联系信息</div>
+              </div>
+              <div class="card-body">
+                <form id="form-edit-profile" onsubmit="handleUpdateProfile(event)">
+                  <div class="form-group">
+                    <label class="form-label">真实姓名 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="edit-name" required placeholder="如：张三">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">所在学院 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="edit-college" required placeholder="如：计算机科学与工程学院">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">专业与班级信息 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="edit-class" required placeholder="如：软件工程 2024级2班">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">QQ 联络号码 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="edit-qq" required placeholder="方便社团管理组第一时间联系">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">注册绑定邮箱 (只读)</label>
+                    <input type="email" class="form-control" id="edit-email" disabled style="background: #f1f5f9; cursor: not-allowed;">
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">录取结果通知及重要系统信件将发送至该邮箱</div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                    💾 保存并更新个人档案
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- 账号安全与权限说明 -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🛡️ 账户权限与服务规范</div>
+              </div>
+              <div class="card-body">
+                <div style="font-size: 14px; line-height: 1.8; color: #334155;">
+                  <div style="margin-bottom: 14px;">
+                    <h4 style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">🎯 角色权限等级说明：</h4>
+                    <ul style="padding-left: 20px; color: #64748b;">
+                      <li><strong>普通用户 (user)</strong>：可浏览官网、下载模板、递交入社申请。</li>
+                      <li><strong>社团成员 (member)</strong>：解锁专属数字证书、工位预约、发起活动共创、点赞投票、畅享留言互动及查阅社内专享通知。</li>
+                      <li><strong>管理员 (admin / super_admin)</strong>：拥有后台管理驾驶舱权限，负责入社阅卷、模板配置、通知发布与权限调度。</li>
+                    </ul>
+                  </div>
+
+                  <div style="margin-bottom: 14px; padding: 14px; background: #f8fafc; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                    <h4 style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">🔒 会话与凭证安全：</h4>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
+                      系统采用具备 HttpOnly 与 SameSite 保护机制的安全 Cookie 与 JWT 双重鉴权。在公共设备上使用完毕后，请务必点击左下方【退出当前登录】以保障账户安全。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 4: 活动共创提案 ==================== -->
+        <div class="tab-pane" id="pane-proposals">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🎯 社团活动共创提案与全员表决</span>
+                <span class="badge badge-super" style="font-size: 11px;">民主决策 · 全员投票</span>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="proposal-filter-status" class="form-control" style="width: auto; padding: 4px 10px; font-size: 13px;" onchange="loadProposals()">
+                  <option value="all">全部活动状态</option>
+                  <option value="voting">🗳️ 投票中</option>
+                  <option value="approved_to_hold">🎉 决定举办</option>
+                  <option value="rejected">决议暂不举办</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="openNewProposalModal()">
+                  💡 发起新活动提案
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info" style="margin-bottom: 20px;">
+                💡 <strong>极客共创机制：</strong>所有正式社员均可发起活动倡议（沙龙/创客松/名企行/竞赛集训），全员皆可投票支持。管理团队根据支持票数与预算安排正式立项！
+              </div>
+
+              <div id="proposals-list-container">
+                <div style="text-align: center; padding: 40px; color: #64748b;">正在加载活动提案...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 5: 社内交流留言板 ==================== -->
+        <div class="tab-pane" id="pane-messages">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>💬 社内成员交流互动留言板</span>
+                <span class="badge badge-member" style="font-size: 11px;">成员畅聊 · 管理员官方答复</span>
+              </div>
+              <span style="font-size: 13px; color: #64748b;" id="msg-count-indicator"></span>
+            </div>
+            <div class="card-body">
+              <!-- 发帖区 -->
+              <div id="msg-post-box" style="margin-bottom: 24px;">
+                <form onsubmit="handlePostMessage(event)">
+                  <div class="form-group" style="margin-bottom: 10px;">
+                    <textarea class="form-control" id="msg-content-input" rows="3" placeholder="写下你的想法、技术疑惑、项目结对需求、或给社团的建议...（管理员将在后台查阅并予以官方答复）" required></textarea>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-msg">🚀 发布社内留言</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- 留言流 -->
+              <div id="messages-list-container">
+                <div style="text-align: center; padding: 40px; color: #64748b;">正在加载留言流...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 6: 社内专属通知 ==================== -->
+        <div class="tab-pane" id="pane-notices">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🔒 社内专属通知与规章备忘</span>
+                <span class="badge badge-member" style="font-size: 11px;">成员专享</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="member-notices-container">
+                <div style="text-align: center; padding: 40px; color: #64748b;">加载通知规章中...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== 模态弹窗组件集合 ==================== -->
+
+  <!-- 1. 发起活动提案模态弹窗 -->
+  <div class="modal-overlay" id="modal-new-proposal">
+    <div class="modal-container" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 class="modal-title">💡 发起社团活动新倡议</h3>
+        <button class="modal-close" onclick="closeModal('modal-new-proposal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          🌟 <strong>全员共创：</strong>提案发起后将公开接受全员投票，管理组将根据热度、可行性与预算做出是否举办的官方决议！
+        </div>
+
+        <form id="form-new-proposal" onsubmit="handleCreateProposal(event)">
+          <div class="form-group">
+            <label class="form-label">活动名称 <span class="required">*</span></label>
+            <input type="text" class="form-control" id="prop-title" placeholder="如：《LLM 智能体架构与多模态实战工坊》" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label">活动类别</label>
+              <select class="form-control" id="prop-category">
+                <option value="技术沙龙">技术沙龙 (工作坊/讲座/实战)</option>
+                <option value="创客黑客松">创客黑客松 (马拉松比赛/Demo秀)</option>
+                <option value="破冰团建">破冰团建 (交流会/联谊/户外桌游)</option>
+                <option value="名企参访">名企参访 (行业实地观摩)</option>
+                <option value="竞赛培训">竞赛培训 (挑战杯/互联网+/算法)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">拟定举办时间</label>
+              <input type="text" class="form-control" id="prop-time" placeholder="如：第8周周五晚上 19:00">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label">拟定举办地点</label>
+              <input type="text" class="form-control" id="prop-location" placeholder="如：活动中心302工坊 / 阶梯教室">
+            </div>
+            <div class="form-group">
+              <label class="form-label">经费预算估计</label>
+              <input type="text" class="form-control" id="prop-budget" placeholder="如：约300元（零食饮品/物料）">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">活动背景与核心目的简述</label>
+            <input type="text" class="form-control" id="prop-desc" placeholder="简要说明为什么要举办这个活动，对社员的帮助">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">活动要求与具体执行细节 <span class="required">*</span></label>
+            <textarea class="form-control" id="prop-details" rows="5" placeholder="请详细列出：&#10;1. 活动流程安排（前半小时分享、后半小时实操等）&#10;2. 参与者需要准备什么（自带笔记本等）&#10;3. 所需物资或支持" required></textarea>
+          </div>
+
+          <div class="modal-footer" style="padding: 14px 0 0; margin-top: 14px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-new-proposal')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-prop">确认提交提案并开启全员投票</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 查看活动详情弹窗 -->
+  <div class="modal-overlay" id="modal-proposal-detail">
+    <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="pdetail-title">活动提案详情</h3>
+        <button class="modal-close" onclick="closeModal('modal-proposal-detail')">&times;</button>
+      </div>
+      <div class="modal-body" id="pdetail-body">
+        <!-- 动态填充 -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('modal-proposal-detail')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 提交申请表模态弹窗 -->
+  <div class="modal-overlay" id="modal-submit-app">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title">✍️ 提交社团入社申请表</h3>
+        <button class="modal-close" onclick="closeModal('modal-submit-app')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          📋 <strong>投递须知：</strong>请先下载官方申请表模板，填写完整后在此上传。审核通过后您将正式晋升为社团成员并收到录取邮件通知！
+        </div>
+
+        <form id="form-submit-application" onsubmit="handleApplicationSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">意向申请发展方向 <span class="required">*</span></label>
+            <select class="form-control" id="app-target-dept" required>
+              <option value="">-- 请选择申请意向方向 --</option>
+              <option value="前沿全栈与AI研发方向">前沿全栈与AI研发方向 (Web/AI/嵌入式/云原生)</option>
+              <option value="高水平科技竞赛方向">高水平科技竞赛方向 (中国国际创新大赛/挑战杯/算法黑客松)</option>
+              <option value="创意策划与大型活动方向">创意策划与大型活动方向 (科技沙龙/创客黑客松/破冰)</option>
+              <option value="融媒宣传与品牌运营方向">融媒宣传与品牌运营方向 (摄影/设计/推文/视频/新媒体)</option>
+              <option value="综合组织与实践外联方向">综合组织与实践外联方向 (社员档案/物资保障/企业赞助)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">个人特长、技术栈或自我介绍简述</label>
+            <textarea class="form-control" id="app-statement" rows="3" placeholder="简要自述感兴趣的技术栈、参赛经历或未来学习规划..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">上传填写完毕的申请表文件 (.docx / .pdf / .xlsx / .zip) <span class="required">*</span></label>
+            <div class="file-dropzone" onclick="document.getElementById('app-file-input').click()">
+              <div class="dropzone-icon">📁</div>
+              <div id="app-file-tip" style="font-weight: 600; color: var(--text-main); margin-bottom: 4px;">点击选择或拖拽申请表文件至此处</div>
+              <div style="font-size: 12px; color: var(--text-muted);">支持 docx, doc, pdf, xlsx, zip 格式</div>
+              <input type="file" id="app-file-input" style="display: none;" accept=".doc,.docx,.pdf,.xlsx,.xls,.zip" required onchange="handleFileSelected(this)">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btn-submit-action" style="width: 100%;">确认提交入社申请</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 共享交互库 -->
+  <script src="/js/api.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>

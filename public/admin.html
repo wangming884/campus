@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高校社团综合运营与管理后台</title>
+  <meta name="description" content="高校学生社团后台管理系统，包含官网首页可视化编辑、入社审核中心、申请表模板管理、通知发布、RBAC权限调度及邮件通知服务。">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script>
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+    window.escapeHtml = escapeHtml;
+  </script>
+</head>
+<body>
+
+  <div class="admin-layout">
+    <!-- 侧边栏导航 -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-icon">⚡</div>
+        <div>
+          <div class="sidebar-brand-title" id="admin-club-title">社团管理后台</div>
+          <div class="sidebar-brand-desc">综合运营与权限中枢</div>
+        </div>
+      </div>
+
+      <!-- 用户卡片 -->
+      <div class="sidebar-user-card">
+        <div class="user-avatar-circle" id="admin-avatar">管</div>
+        <div class="user-info-text">
+          <div class="user-name" id="admin-user-name">加载中...</div>
+          <div id="admin-user-badge" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <!-- 导航列表 -->
+      <nav class="sidebar-nav">
+        <div class="nav-item active" onclick="switchAdminTab('portal')" id="nav-tab-portal">
+          <span class="nav-item-icon">🎨</span>
+          <span>官网主页配置</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('pages')" id="nav-tab-pages">
+          <span class="nav-item-icon">🌐</span>
+          <span>网站页面管理</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('audit')" id="nav-tab-audit">
+          <span class="nav-item-icon">📋</span>
+          <span style="flex-grow: 1;">入社申请审核</span>
+          <span class="badge badge-status-pending" id="badge-pending-count" style="display: none; padding: 2px 6px; font-size: 11px;">0</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('templates')" id="nav-tab-templates">
+          <span class="nav-item-icon">📁</span>
+          <span>申请表模板管理</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('notices')" id="nav-tab-notices">
+          <span class="nav-item-icon">📢</span>
+          <span>通知公告管理</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('proposals')" id="nav-tab-proposals">
+          <span class="nav-item-icon">🎯</span>
+          <span>活动提案与决议</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('messages')" id="nav-tab-messages">
+          <span class="nav-item-icon">💬</span>
+          <span>成员留言与答复</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('users')" id="nav-tab-users">
+          <span class="nav-item-icon">👥</span>
+          <span>成员与权限管理</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('mail')" id="nav-tab-mail">
+          <span class="nav-item-icon">📧</span>
+          <span>邮件系统与日志</span>
+        </div>
+      </nav>
+
+      <!-- 底部操作 -->
+      <div class="sidebar-footer">
+        <a href="/" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent;">
+          🌐 返回官网主页
+        </a>
+        <button class="btn btn-danger btn-sm" onclick="logout()">
+          🚪 退出系统
+        </button>
+      </div>
+    </aside>
+
+    <!-- 主操作界面 -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-title" id="topbar-page-title">
+          <span>🎨 官网主页动态配置</span>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm" onclick="refreshCurrentTab()">
+            🔄 刷新数据
+          </button>
+          <a href="/profile" class="btn btn-outline btn-sm">
+            👤 个人中心
+          </a>
+        </div>
+      </header>
+
+      <div class="admin-content">
+
+        <!-- ==================== Tab 1: 官网主页配置 ==================== -->
+        <div class="tab-pane active" id="pane-portal">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🌐 官网主页内容即时编辑</div>
+              <button class="btn btn-primary" onclick="savePortalConfig()">
+                💾 保存并即时发布到官网
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info">
+                💡 在此处修改的社团名称、首屏标语、关于社团、数据卡片及联系方式，点击保存后将<strong>秒级动态同步</strong>至官网前台展示页面。
+              </div>
+
+              <!-- 基础与首屏 -->
+              <div class="form-section-title">📌 基础与首屏（Hero）信息</div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">社团官方全称 <span class="required">*</span></label>
+                  <input type="text" class="form-control" id="cfg-club-name" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">首屏动态胶囊标语</label>
+                  <input type="text" class="form-control" id="cfg-hero-badge">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">主页大标题 (Slogan Title) <span class="required">*</span></label>
+                <input type="text" class="form-control" id="cfg-hero-title" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">主页副标题 (Slogan Subtitle)</label>
+                <textarea class="form-control" id="cfg-hero-subtitle" rows="2"></textarea>
+              </div>
+
+              <!-- 关于我们 -->
+              <div class="form-section-title">📖 关于社团 (About Us)</div>
+              <div class="form-group">
+                <label class="form-label">关于板块标题</label>
+                <input type="text" class="form-control" id="cfg-about-title">
+              </div>
+              <div class="form-group">
+                <label class="form-label">社团历史与发展简介 <span class="required">*</span></label>
+                <textarea class="form-control" id="cfg-about-content" rows="4"></textarea>
+              </div>
+
+              <!-- 核心数据统计 -->
+              <div class="form-section-title">📊 核心数据统计指标 (4项展示卡片)</div>
+              <div class="form-grid-2" id="cfg-stats-inputs-container">
+                <!-- 动态填充 4 项指标 -->
+              </div>
+
+              <!-- 联系方式 -->
+              <div class="form-section-title">📞 底部联系方式与社交信息</div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">官方联系邮箱</label>
+                  <input type="email" class="form-control" id="cfg-contact-email">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">官方招新QQ群号</label>
+                  <input type="text" class="form-control" id="cfg-contact-qqGroup">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">官方微信公众号</label>
+                  <input type="text" class="form-control" id="cfg-contact-wechat">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">活动室/工位实体地址</label>
+                  <input type="text" class="form-control" id="cfg-contact-location">
+                </div>
+              </div>
+
+              <div style="margin-top: 30px; text-align: right;">
+                <button class="btn btn-primary btn-lg" onclick="savePortalConfig()">
+                  💾 保存修改并同步生效至官网主页
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab: 网站页面管理 (增删改) ==================== -->
+        <div class="tab-pane" id="pane-pages">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🌐 网站所有页面综合管理 (CMS)</div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                  支持编辑系统默认 5 大核心页面（首页、关于我们、纳新通道、通知公告、联系方式）及自由新增/删除自定义独立网页。
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="openCreatePageModal()">
+                ➕ 新增自定义网页
+              </button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">ID</th>
+                      <th>页面名称</th>
+                      <th>访问路由 (URL)</th>
+                      <th>Slug 标识</th>
+                      <th>页面类型</th>
+                      <th>导航栏展示</th>
+                      <th>排序</th>
+                      <th>最后更新</th>
+                      <th style="min-width: 200px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pages-table-body">
+                    <tr><td colspan="9" style="text-align: center; padding: 30px;">正在加载页面数据...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 2: 入社申请审核中心 ==================== -->
+        <div class="tab-pane" id="pane-audit">
+          <!-- 统计卡片 -->
+          <div class="stat-mini-grid">
+            <div class="stat-mini-card">
+              <div>
+                <div class="stat-mini-num" id="stat-audit-total">0</div>
+                <div class="stat-mini-label">总申请人数</div>
+              </div>
+              <div style="font-size: 26px;">📝</div>
+            </div>
+            <div class="stat-mini-card" style="border-left: 4px solid var(--warning);">
+              <div>
+                <div class="stat-mini-num" id="stat-audit-pending" style="color: var(--warning);">0</div>
+                <div class="stat-mini-label">待审核申请</div>
+              </div>
+              <div style="font-size: 26px;">⏳</div>
+            </div>
+            <div class="stat-mini-card" style="border-left: 4px solid var(--success);">
+              <div>
+                <div class="stat-mini-num" id="stat-audit-approved" style="color: var(--success);">0</div>
+                <div class="stat-mini-label">已录取社员</div>
+              </div>
+              <div style="font-size: 26px;">🎉</div>
+            </div>
+            <div class="stat-mini-card" style="border-left: 4px solid var(--danger);">
+              <div>
+                <div class="stat-mini-num" id="stat-audit-rejected" style="color: var(--danger);">0</div>
+                <div class="stat-mini-label">未通过申请</div>
+              </div>
+              <div style="font-size: 26px;">❌</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📋 纳新入社申请表审核池</div>
+              <div class="table-toolbar" style="margin-bottom: 0;">
+                <div class="toolbar-left">
+                  <select class="form-control" id="audit-filter-status" style="width: 140px;" onchange="loadApplications()">
+                    <option value="all">全部状态</option>
+                    <option value="pending" selected>待审核</option>
+                    <option value="approved">审核通过</option>
+                    <option value="rejected">已驳回</option>
+                  </select>
+                  <input type="text" class="form-control" id="audit-filter-keyword" placeholder="搜索姓名/学院/班级/邮箱..." style="width: 220px;" onkeyup="if(event.key==='Enter') loadApplications()">
+                  <button class="btn btn-outline" onclick="loadApplications()">筛选</button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>申请人姓名</th>
+                      <th>学院与班级</th>
+                      <th>QQ / 邮箱</th>
+                      <th>志愿部门</th>
+                      <th>申请表附件</th>
+                      <th>投递时间</th>
+                      <th>审核状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="audit-table-body">
+                    <tr><td colspan="9" style="text-align: center; padding: 30px;">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 3: 申请表模板管理 ==================== -->
+        <div class="tab-pane" id="pane-templates">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📤 上传新的入社申请表模板</div>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info">
+                📄 当您在此上传新的申请表文件（支持 .docx, .pdf, .xlsx 等），并勾选【设为默认】，官网前台各处“下载申请表模板”按钮将<strong>自动提供该文件</strong>供全校同学下载。
+              </div>
+
+              <form id="form-upload-template" onsubmit="handleUploadTemplate(event)">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">模板显示标题 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="tpl-title" placeholder="如：2026学年社团入社申请登记表（官方标准版）" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">选择模板文件 (.docx / .pdf / .xlsx / .zip) <span class="required">*</span></label>
+                    <input type="file" class="form-control" id="tpl-file" accept=".doc,.docx,.pdf,.xlsx,.xls,.zip" required>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+                    <input type="checkbox" id="tpl-set-active" checked>
+                    <strong>立即设为官网当前生效的默认下载模板</strong>
+                  </label>
+
+                  <button type="submit" class="btn btn-primary" id="btn-upload-tpl">
+                    🚀 确认上传模板
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📂 已上传的申请表模板历史库</div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>模板标题</th>
+                      <th>存储文件名</th>
+                      <th>文件大小</th>
+                      <th>上传者</th>
+                      <th>上传时间</th>
+                      <th>当前生效状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="templates-table-body">
+                    <tr><td colspan="8" style="text-align: center; padding: 30px;">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 4: 通知公告管理 ==================== -->
+        <div class="tab-pane" id="pane-notices">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📢 发布新通知公告</div>
+            </div>
+            <div class="card-body">
+              <form id="form-publish-notice" onsubmit="handlePublishNotice(event)">
+                <div class="form-grid-3">
+                  <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label">通知标题 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="notice-title-input" placeholder="输入公告标题，如【招新通告】..." required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">通知分类范围 <span class="required">*</span></label>
+                    <select class="form-control" id="notice-category-input">
+                      <option value="public">🌐 全校公开 (所有人可见)</option>
+                      <option value="member">🔒 社团成员专享 (仅成员/管理员登录可见)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">标签名称</label>
+                    <input type="text" class="form-control" id="notice-tag-input" placeholder="例如：招新通告 / 活动预告 / 内部必读">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">通知正文内容 <span class="required">*</span></label>
+                  <textarea class="form-control" id="notice-content-input" rows="4" placeholder="请详实填写通知安排、时间地点或规章内容..." required></textarea>
+                </div>
+
+                <div style="text-align: right;">
+                  <button type="submit" class="btn btn-primary" id="btn-pub-notice">
+                    📢 立即发布通知
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📑 已发布通知公告列表</div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>通知标题</th>
+                      <th>可见范围</th>
+                      <th>标签</th>
+                      <th>发布人</th>
+                      <th>发布时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="notices-table-body">
+                    <tr><td colspan="7" style="text-align: center; padding: 30px;">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab: 活动提案与决议中心 ==================== -->
+        <div class="tab-pane" id="pane-proposals">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">🎯 社团活动提案审核与决议中心</div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                  社团成员提出活动构想并经由社内投票，管理员在此评估活动细节、预算与支持热度，做出【批准筹备（决定举办）】或【驳回暂不举办】的最终决议。
+                </div>
+              </div>
+              <div class="table-toolbar" style="margin-bottom: 0;">
+                <div class="toolbar-left">
+                  <select class="form-control" id="proposal-admin-filter-status" style="width: 150px;" onchange="loadProposalsAdmin()">
+                    <option value="all">全部活动提案</option>
+                    <option value="voting">🗳️ 投票中 (待决议)</option>
+                    <option value="approved_to_hold">🎉 决定举办</option>
+                    <option value="rejected">决议暂不举办</option>
+                  </select>
+                  <button class="btn btn-outline" onclick="loadProposalsAdmin()">刷新</button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">ID</th>
+                      <th>活动名称</th>
+                      <th>类别</th>
+                      <th>发起社员 / 学院</th>
+                      <th>拟定时间与地点</th>
+                      <th>经费预算</th>
+                      <th>支持票数</th>
+                      <th>当前决议状态</th>
+                      <th style="min-width: 170px;">决议与操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="proposals-admin-table-body">
+                    <tr><td colspan="9" style="text-align: center; padding: 30px;">正在加载活动提案...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab: 成员留言与官方答复 ==================== -->
+        <div class="tab-pane" id="pane-messages">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">💬 社团成员留言互动与官方答复</div>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                  查阅社团成员发表的日常交流、提问建议与心声，管理员可撰写官方答复并支持置顶精选留言。
+                </div>
+              </div>
+              <button class="btn btn-outline" onclick="loadMessagesAdmin()">🔄 刷新留言列表</button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">ID</th>
+                      <th>留言社员</th>
+                      <th>角色与学院</th>
+                      <th style="min-width: 260px;">留言正文</th>
+                      <th>提交时间</th>
+                      <th>答复状态</th>
+                      <th>置顶</th>
+                      <th style="min-width: 180px;">管理操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="messages-admin-table-body">
+                    <tr><td colspan="8" style="text-align: center; padding: 30px;">正在加载成员留言...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 5: 成员与权限管理 (RBAC) ==================== -->
+        <div class="tab-pane" id="pane-users">
+          <div class="alert alert-info">
+            <div style="font-size: 14px;">
+              <strong>🛡️ 系统 RBAC 4级权限规则说明：</strong><br>
+              1. 👑 <strong>超级管理员 (全局唯一)</strong>：拥有最高特权，<strong>独享提拔社团成员为【管理员】</strong>及撤职权限，配置邮件系统。<br>
+              2. 🛡️ <strong>管理员与超管</strong>：可审核入社申请，并均有权限<strong>手动把【普通用户】升级为【社团成员】</strong>，编辑官网与发布通知。<br>
+              3. 🌟 <strong>社团成员</strong>：通过审核或由管理员升级，解锁社员专区与专属资源。<br>
+              4. 👤 <strong>普通用户</strong>：注册默认初始角色，可下载模板并上传提交入社申请表。
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">👥 全体注册用户与角色权限总表</div>
+              <div class="table-toolbar" style="margin-bottom: 0;">
+                <div class="toolbar-left">
+                  <select class="form-control" id="user-filter-role" style="width: 140px;" onchange="loadUsers()">
+                    <option value="all">全部角色</option>
+                    <option value="user">普通用户</option>
+                    <option value="member">社团成员</option>
+                    <option value="admin">管理员</option>
+                    <option value="super_admin">超级管理员</option>
+                  </select>
+                  <input type="text" class="form-control" id="user-filter-keyword" placeholder="搜索姓名/学院/班级/QQ/邮箱..." style="width: 220px;" onkeyup="if(event.key==='Enter') loadUsers()">
+                  <button class="btn btn-outline" onclick="loadUsers()">筛选</button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>UID</th>
+                      <th>姓名</th>
+                      <th>学院与专业班级</th>
+                      <th>QQ号码</th>
+                      <th>注册邮箱</th>
+                      <th>当前系统角色</th>
+                      <th>注册时间</th>
+                      <th style="min-width: 200px;">权限调度操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-table-body">
+                    <tr><td colspan="8" style="text-align: center; padding: 30px;">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 6: 邮件系统配置与发信日志 ==================== -->
+        <div class="tab-pane" id="pane-mail">
+          <div class="card" id="card-mail-settings">
+            <div class="card-header">
+              <div class="card-title">⚙️ SMTP 邮件服务参数配置 (仅超级管理员可操作)</div>
+              <button class="btn btn-primary" onclick="saveMailSettings()">
+                💾 保存邮件配置
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info">
+                📮 <strong>发信机制：</strong>当管理员审核通过入社申请时，系统将通过此 SMTP 服务自动向申请人的注册邮箱发送录取通知与入社指引。若暂未配置真实授权码，系统将<strong>自动开启模拟发信信箱</strong>，并在下方的发信日志中完整归档邮件内容，绝不丢失任何通知。
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">SMTP 服务器地址 (Host)</label>
+                  <input type="text" class="form-control" id="mail-host" placeholder="如: smtp.qq.com 或 smtp.163.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">SMTP 端口 (Port)</label>
+                  <input type="number" class="form-control" id="mail-port" placeholder="465 (SSL) 或 587 (TLS)">
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">发信邮箱账号 (User)</label>
+                  <input type="text" class="form-control" id="mail-user" placeholder="例如: your_club@qq.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">邮箱授权码/密码 (Pass) <span id="mail-pass-hint" style="color: var(--success); font-weight: normal;"></span></label>
+                  <input type="password" class="form-control" id="mail-pass" placeholder="请输入QQ邮箱POP3/SMTP授权码">
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label">发件人显示名称 (Sender Name)</label>
+                  <input type="text" class="form-control" id="mail-sender-name" placeholder="如：青年极客社团招新组">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 16px; margin-top: 28px;">
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="mail-mock-mode">
+                    <strong>开启内建模拟信箱模式 (推荐测试使用，零配置秒级测试)</strong>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 测试邮件发送 -->
+              <div style="background: #f8fafc; border: 1px solid var(--border); padding: 18px; border-radius: var(--radius-md); margin-top: 20px;">
+                <div style="font-weight: 700; margin-bottom: 8px;">🧪 发信连通性即时测试</div>
+                <div style="display: flex; gap: 12px;">
+                  <input type="email" class="form-control" id="mail-test-to" placeholder="输入接收测试邮件的邮箱，如: test@qq.com" style="max-width: 380px;">
+                  <button class="btn btn-outline" onclick="sendTestEmail()">📨 发送测试邮件</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 发信日志与模拟信箱 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📫 系统发信日志与历史记录 (录取/驳回/测试)</div>
+              <button class="btn btn-outline btn-sm" onclick="loadMailLogs()">刷新日志</button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>收件邮箱</th>
+                      <th>收件人姓名</th>
+                      <th>邮件主题</th>
+                      <th>发信状态</th>
+                      <th>发送时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mail-logs-table-body">
+                    <tr><td colspan="7" style="text-align: center; padding: 30px;">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== 审核处理模态框 ==================== -->
+  <div class="modal-overlay" id="modal-review-app">
+    <div class="modal-container" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 class="modal-title">入社申请审核与决议</h3>
+        <button class="modal-close" onclick="closeModal('modal-review-app')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="review-applicant-summary" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; line-height: 1.8;">
+          <!-- 动态渲染候选人信息 -->
+        </div>
+
+        <form id="form-do-review" onsubmit="handleReviewSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">审核操作决议 <span class="required">*</span></label>
+            <div style="display: flex; gap: 20px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border: 1.5px solid var(--success); border-radius: var(--radius-md); background: var(--success-light); font-weight: 700; color: var(--success-text);">
+                <input type="radio" name="review_action" value="approve" checked>
+                ✅ 审核通过 (批准入社)
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border: 1.5px solid var(--danger); border-radius: var(--radius-md); background: var(--danger-light); font-weight: 700; color: var(--danger-text);">
+                <input type="radio" name="review_action" value="reject">
+                ❌ 审核驳回 (暂不录用)
+              </label>
+            </div>
+            <div class="form-help" style="margin-top: 8px; color: var(--primary);">
+              ⚡ <strong>提示：</strong>点击【审核通过】后，该用户身份将<strong>自动即时升级为【社团成员】</strong>，且系统将<strong>自动向该同学邮箱发送官方录取通知邮件</strong>！
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">审核评语 / 反馈建议 / 录用须知</label>
+            <textarea class="form-control" id="review-notes" rows="3" placeholder="例如：欢迎加入技术研发部！请准时参加本周五迎新沙龙。"></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-review-app')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-review">提交审核并发送邮件通知</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 邮件预览模态框 ==================== -->
+  <div class="modal-overlay" id="modal-mail-preview">
+    <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="mail-preview-subject">邮件内容详情</h3>
+        <button class="modal-close" onclick="closeModal('modal-mail-preview')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 14px; font-size: 13.5px; color: var(--text-muted);">
+          <div><strong>收件地址：</strong><span id="mail-preview-to"></span></div>
+          <div><strong>发件状态：</strong><span id="mail-preview-status"></span></div>
+          <div><strong>生成时间：</strong><span id="mail-preview-date"></span></div>
+        </div>
+        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; max-height: 400px; overflow-y: auto; background: #ffffff;" id="mail-preview-body">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('modal-mail-preview')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 网页编辑与新增模态框 ==================== -->
+  <div class="modal-overlay" id="modal-edit-page">
+    <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="page-modal-title">编辑网页信息</h3>
+        <button class="modal-close" onclick="closeModal('modal-edit-page')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-page" onsubmit="handleSavePage(event)">
+          <input type="hidden" id="page-id-input">
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">页面名称 (导航显示名) <span class="required">*</span></label>
+              <input type="text" class="form-control" id="page-title-input" placeholder="如：学长风采 / 历届作品" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">英文 Slug 标识 <span class="required">*</span></label>
+              <input type="text" class="form-control" id="page-slug-input" placeholder="如：showcase / gallery" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">排序权重 (数字越小越靠前)</label>
+              <input type="number" class="form-control" id="page-sort-input" value="10">
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; margin-top: 28px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="page-nav-visible-input" checked>
+                <strong>在全站顶部导航栏公开展示</strong>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">页面简介 / SEO 描述说明</label>
+            <input type="text" class="form-control" id="page-desc-input" placeholder="一句话介绍页面主旨">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">页面正文内容 (支持 HTML / Markdown / 纯文本)</label>
+            <textarea class="form-control" id="page-content-input" rows="7" placeholder="在此编写该页面的正文图文内容..."></textarea>
+          </div>
+
+          <div class="modal-footer" style="padding: 14px 0 0; margin-top: 14px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-edit-page')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-page">💾 保存页面设置</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 活动提案审批与决议模态框 ==================== -->
+  <div class="modal-overlay" id="modal-decision-proposal">
+    <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title">⚖️ 活动提案审批与举办决议</h3>
+        <button class="modal-close" onclick="closeModal('modal-decision-proposal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="proposal-admin-summary" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; line-height: 1.8;">
+          <!-- 动态渲染活动详情 -->
+        </div>
+
+        <form id="form-do-proposal-decision" onsubmit="handleProposalDecisionSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">管理员举办决议 <span class="required">*</span></label>
+            <div style="display: flex; gap: 20px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border: 1.5px solid var(--success); border-radius: var(--radius-md); background: var(--success-light); font-weight: 700; color: var(--success-text);">
+                <input type="radio" name="prop_decision_action" value="approve" checked>
+                🎉 批准筹备（官方决定举办）
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border: 1.5px solid var(--danger); border-radius: var(--radius-md); background: var(--danger-light); font-weight: 700; color: var(--danger-text);">
+                <input type="radio" name="prop_decision_action" value="reject">
+                ❌ 暂不举办（予以驳回）
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">官方决议批复评语 / 筹备指导意见</label>
+            <textarea class="form-control" id="prop-decision-notes" rows="3" placeholder="例如：经管理组综合评估，本活动符合学期发展规划，社内投票支持率高，予以批准！由组织实践部配合借调场地与采购物料。"></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-decision-proposal')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-prop-decision">提交决议批复</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 留言回复模态框 ==================== -->
+  <div class="modal-overlay" id="modal-reply-message">
+    <div class="modal-container" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">💬 答复社团成员留言</h3>
+        <button class="modal-close" onclick="closeModal('modal-reply-message')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="reply-msg-summary" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px;">
+          <!-- 动态展示原留言 -->
+        </div>
+
+        <form id="form-reply-message" onsubmit="handleMessageReplySubmit(event)">
+          <div class="form-group">
+            <label class="form-label">管理员官方答复内容 <span class="required">*</span></label>
+            <textarea class="form-control" id="msg-reply-input" rows="4" placeholder="写下对该成员留言的官方回应、解决方案或解答..." required></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-reply-message')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-msg-reply">提交官方答复</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 成员角色与权限调度模态框 ==================== -->
+  <div class="modal-overlay" id="modal-dispatch-role">
+    <div class="modal-container" style="max-width: 560px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🛡️ 成员角色与系统权限调度</h3>
+        <button class="modal-close" onclick="closeModal('modal-dispatch-role')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="dispatch-user-summary" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 20px;">
+          <!-- 动态展示选中成员信息 -->
+        </div>
+
+        <form id="form-dispatch-role" onsubmit="handleDispatchRoleSubmit(event)">
+          <input type="hidden" id="dispatch-target-user-id">
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700; margin-bottom: 10px;">目标分配系统角色 <span class="required">*</span></label>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label id="opt-role-user" class="role-dispatch-card">
+                <input type="radio" name="dispatch_role_choice" value="user">
+                <div>
+                  <div style="font-weight: 700; color: #1e293b; font-size: 14px;">👤 普通用户 (user)</div>
+                  <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px;">注册初始基础身份，可查阅公开动态、下载招新模板并提交入社申请。</div>
+                </div>
+              </label>
+
+              <label id="opt-role-member" class="role-dispatch-card">
+                <input type="radio" name="dispatch_role_choice" value="member">
+                <div>
+                  <div style="font-weight: 700; color: #0284c7; font-size: 14px;">🌟 社团成员 (member)</div>
+                  <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px;">正式在册社员，解锁社员专区、发起活动提案立项与内部投票支持。</div>
+                </div>
+              </label>
+
+              <label id="opt-role-admin" class="role-dispatch-card">
+                <input type="radio" name="dispatch_role_choice" value="admin">
+                <div>
+                  <div style="font-weight: 700; color: #047857; font-size: 14px;">
+                    🛡️ 管理员 (admin) 
+                    <span id="admin-perm-hint" style="font-size: 12px; font-weight: normal; color: var(--warning); margin-left: 6px;"></span>
+                  </div>
+                  <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px;">具备入社审核、官网主页及各页面编辑、公告发布、提案决议与答复留言权限。</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-dispatch-role')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-dispatch-role">确认调度权限</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

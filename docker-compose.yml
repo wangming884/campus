@@ -1,0 +1,51 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: campus-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: campus_club
+    ports:
+      - "3307:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - campus_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123456"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  app:
+    build: .
+    container_name: campus-web-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root123456
+      - DB_NAME=campus_club
+      - PORT=3000
+      - JWT_SECRET=campus_club_jwt_secret_key_2026
+      - NODE_ENV=production
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./public:/app/public
+      - ./src:/app/src
+      - ./server.js:/app/server.js
+      - campus_uploads_data:/app/uploads
+
+volumes:
+  campus_mysql_data:
+    name: campus_mysql_data
+  campus_uploads_data:
+    name: campus_uploads_data
