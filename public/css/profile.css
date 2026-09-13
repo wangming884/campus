@@ -348,6 +348,80 @@
   }
 }
 
+/* ========== ✨ 个人中心视觉细节增强 ========== */
+
+/* 社员认证卡片金属光泽扫过动画 */
+.member-cert-hero {
+  overflow: hidden;
+}
+.member-cert-hero::before {
+  animation: certSheen 5s ease-in-out infinite;
+}
+@keyframes certSheen {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.35; }
+}
+
+/* 解锁提示卡片微交互 */
+.member-locked-hero {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.member-locked-hero:hover {
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 申请状态时间线条目增强 */
+.app-timeline-steps::before {
+  transition: background 0.3s ease;
+}
+
+/* 消息卡片回复区增强 */
+.msg-admin-reply-box {
+  position: relative;
+}
+.msg-admin-reply-box::before {
+  content: '👑 管理回复';
+  position: absolute;
+  top: -9px;
+  left: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+  background: #f0fdf4;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+}
+
+/* 投票数字跳动效果 */
+@keyframes votePopIn {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); color: var(--secondary); }
+  100% { transform: scale(1); }
+}
+.vote-tally-num.voted {
+  animation: votePopIn 0.45s ease;
+}
+
+/* 留言卡片悬浮微动 */
+.msg-thread-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.msg-thread-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: #c7d2fe;
+}
+
+/* 提案卡片标签微调 */
+.proposal-card-item .badge {
+  transition: transform 0.2s ease;
+}
+.proposal-card-item:hover .badge {
+  transform: scale(1.05);
+}
+
 @media (max-width: 580px) {
   .stat-mini-grid {
     grid-template-columns: 1fr;

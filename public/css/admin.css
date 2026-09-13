@@ -408,3 +408,108 @@
   margin-top: 3px;
   cursor: pointer;
 }
+
+/* ========== ✨ 管理后台视觉增强 ========== */
+
+/* 侧边栏导航项左侧激活指示条 */
+.nav-item {
+  position: relative;
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  margin-right: 2px;
+}
+.nav-item.active {
+  border-left-color: #60a5fa;
+  background: rgba(37, 99, 235, 0.18);
+}
+.nav-item:hover:not(.active) {
+  border-left-color: rgba(148, 163, 184, 0.3);
+}
+
+/* 顶部工具栏下阴影微调 */
+.admin-topbar {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* 仪表盘统计小卡片悬浮微交互 */
+.stat-mini-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stat-mini-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 80px; height: 80px;
+  border-radius: 0 0 0 80px;
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.stat-mini-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.12);
+  border-color: #93c5fd;
+}
+.stat-mini-card:hover::after {
+  opacity: 0.04;
+}
+
+/* 表格行进入动画 */
+@keyframes rowFadeSlide {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.data-table tbody tr {
+  animation: rowFadeSlide 0.35s ease-out backwards;
+}
+
+/* 卡片头部左侧彩色标记条 */
+.card {
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.card:hover::before {
+  opacity: 1;
+}
+
+/* 审核操作按钮组微调 */
+.btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 搜索输入增强焦点环 */
+.toolbar-left .form-control:focus,
+.toolbar-right .form-control:focus {
+  box-shadow: 0 0 0 3px var(--primary-glow), 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+/* 角色分配卡片选中状态优化 */
+.role-dispatch-card:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* 移动端汉堡菜单增强 */
+@media (max-width: 900px) {
+  .admin-sidebar {
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+  }
+  .sidebar-overlay {
+    transition: opacity 0.3s ease;
+  }
+}

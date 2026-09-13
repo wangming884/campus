@@ -29,18 +29,21 @@
       border: 1px solid var(--border);
       background: #ffffff;
       color: var(--text-muted);
-      transition: var(--transition);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       user-select: none;
+      position: relative;
     }
     .filter-pill:hover {
       border-color: var(--primary);
       color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
     }
     .filter-pill.active {
       background: var(--primary);
       color: #ffffff;
       border-color: var(--primary);
-      box-shadow: 0 4px 12px var(--primary-glow);
+      box-shadow: 0 4px 14px var(--primary-glow);
     }
     .notice-card {
       background: #ffffff;
@@ -48,15 +51,37 @@
       border-radius: var(--radius-lg);
       padding: 24px 28px;
       margin-bottom: 18px;
-      transition: var(--transition);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      animation: noticeCardIn 0.4s ease-out backwards;
+      position: relative;
+      overflow: hidden;
+    }
+    @keyframes noticeCardIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .notice-card:hover {
       border-color: var(--primary);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
+      box-shadow: 0 12px 32px -8px rgba(37, 99, 235, 0.15);
+      transform: translateY(-3px);
+    }
+    .notice-card::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.03) 0%, transparent 70%);
+      border-radius: 0 0 0 100px;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    }
+    .notice-card:hover::after {
+      opacity: 1;
     }
   </style>
 </head>
@@ -166,8 +191,8 @@
             return;
           }
 
-          container.innerHTML = noticesData.map(n => `
-            <div class="notice-card" onclick="openNoticeModalById(${n.id})">
+          container.innerHTML = noticesData.map((n, i) => `
+            <div class="notice-card" style="animation-delay: ${i * 0.08}s" onclick="openNoticeModalById(${n.id})">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                   <span class="badge ${n.category === 'member' ? 'badge-super' : 'badge-admin'}">

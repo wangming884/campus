@@ -22,10 +22,22 @@
       bottom: 10px;
       width: 2.5px;
       background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 2px;
     }
     .timeline-node {
       position: relative;
       margin-bottom: 36px;
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: timelineSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .timeline-node:nth-child(1) { animation-delay: 0.1s; }
+    .timeline-node:nth-child(2) { animation-delay: 0.25s; }
+    .timeline-node:nth-child(3) { animation-delay: 0.4s; }
+    .timeline-node:nth-child(4) { animation-delay: 0.55s; }
+    .timeline-node:nth-child(5) { animation-delay: 0.7s; }
+    @keyframes timelineSlideIn {
+      to { opacity: 1; transform: translateX(0); }
     }
     .node-dot {
       position: absolute;
@@ -37,6 +49,12 @@
       background: #ffffff;
       border: 3.5px solid var(--primary);
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+      transition: all 0.3s ease;
+    }
+    .timeline-node:hover .node-dot {
+      transform: scale(1.4);
+      box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.15);
+      background: var(--primary);
     }
     .node-year {
       font-size: 20px;
@@ -50,6 +68,34 @@
       border-radius: var(--radius-lg);
       padding: 22px 26px;
       box-shadow: var(--shadow-sm);
+      transition: all 0.3s ease;
+    }
+    .timeline-node:hover .node-content {
+      box-shadow: var(--shadow-lg);
+      border-color: #93c5fd;
+      transform: translateX(6px);
+    }
+    .value-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .value-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px -6px rgba(37, 99, 235, 0.12);
+      border-color: #93c5fd;
+    }
+    .value-card .value-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+    .value-card:hover .value-icon {
+      transform: scale(1.2);
     }
     .honor-grid {
       display: grid;
@@ -63,12 +109,28 @@
       border-radius: var(--radius-md);
       padding: 22px;
       text-align: center;
-      transition: var(--transition);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .honor-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
     .honor-card:hover {
       transform: translateY(-4px);
       box-shadow: var(--shadow-lg);
       border-color: #f59e0b;
+    }
+    .honor-card:hover::after {
+      opacity: 1;
     }
     @media(max-width: 768px) {
       .honor-grid { grid-template-columns: 1fr; }
@@ -112,26 +174,26 @@
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 60px;">
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px; text-align: center;">
-          <div style="font-size: 36px; margin-bottom: 12px;">🛠️</div>
+        <div class="value-card">
+          <div class="value-icon">🛠️</div>
           <h4 style="font-size: 18px; font-weight: 750; margin-bottom: 8px;">务实求真</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">拒绝空谈，以一行行代码和实际落地的产品验证技术逻辑。</p>
         </div>
 
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px; text-align: center;">
-          <div style="font-size: 36px; margin-bottom: 12px;">⚡</div>
+        <div class="value-card">
+          <div class="value-icon">⚡</div>
           <h4 style="font-size: 18px; font-weight: 750; margin-bottom: 8px;">拥抱开源</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">崇尚开放与分享的精神，积极融入全球开发者生态与高校开源建设。</p>
         </div>
 
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px; text-align: center;">
-          <div style="font-size: 36px; margin-bottom: 12px;">🤝</div>
+        <div class="value-card">
+          <div class="value-icon">🤝</div>
           <h4 style="font-size: 18px; font-weight: 750; margin-bottom: 8px;">薪火相传</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">资深高年级学长学姐一对一结对指导，营造温暖互助的人文氛围。</p>
         </div>
 
-        <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px; text-align: center;">
-          <div style="font-size: 36px; margin-bottom: 12px;">🌟</div>
+        <div class="value-card">
+          <div class="value-icon">🌟</div>
           <h4 style="font-size: 18px; font-weight: 750; margin-bottom: 8px;">卓越追求</h4>
           <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">永不停止对未知领域的好奇，在大赛与工程实践中挑战自我极限。</p>
         </div>

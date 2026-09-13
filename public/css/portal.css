@@ -693,6 +693,199 @@
   white-space: nowrap;
 }
 
+/* ========== ✨ 门户精细视觉增强 ========== */
+
+/* Hero 区装饰浮动几何元素 */
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -180px;
+  right: -120px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.07) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: heroOrbFloat 8s ease-in-out infinite;
+}
+.hero-section::after {
+  content: '';
+  position: absolute;
+  bottom: -140px;
+  left: -100px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: heroOrbFloat 10s ease-in-out infinite reverse;
+}
+@keyframes heroOrbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.95); }
+}
+
+/* 首页核心数据卡片增强 */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.04;
+  transition: all 0.4s ease;
+}
+.stat-card:hover::before {
+  transform: scale(2.5);
+  opacity: 0.08;
+}
+.stat-number {
+  transition: color 0.3s ease;
+}
+.stat-card:hover .stat-number {
+  color: var(--primary);
+}
+
+/* 板块头部增强底部装饰线 */
+.section-header {
+  position: relative;
+  padding-bottom: 24px;
+}
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 2px;
+}
+
+/* 关于页面特色卡片增强 (feature block) */
+.feature-block {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+.feature-block:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 12px 32px -8px rgba(37, 99, 235, 0.1);
+  transform: translateY(-3px);
+}
+.feature-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+.feature-block:hover .feature-icon-box {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+/* 招新流程步骤卡片连接线动画 */
+@keyframes stepLineDash {
+  to { stroke-dashoffset: -20; }
+}
+.step-card {
+  overflow: hidden;
+}
+.step-card::before {
+  content: '';
+  position: absolute;
+  top: 23px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
+  z-index: 0;
+  transition: opacity 0.3s ease;
+  opacity: 0.4;
+}
+.step-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}
+
+/* CTA 招募横幅增强光影 */
+.recruitment-cta-box {
+  position: relative;
+  overflow: hidden;
+}
+.recruitment-cta-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='0.8' fill='rgba(255,255,255,0.06)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* 通知公告列表滑入微动画 */
+.notice-item {
+  animation: noticeSlideIn 0.4s ease-out backwards;
+}
+@keyframes noticeSlideIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 页脚增强链接悬停动效 */
+.footer-col ul a {
+  position: relative;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-col ul a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: #60a5fa;
+  transition: width 0.25s ease;
+}
+.footer-col ul a:hover::after {
+  width: 100%;
+}
+
+/* 响应式图表光晕微调 (portal 专属) */
+@media (max-width: 1024px) {
+  .pillar-grid { grid-template-columns: repeat(2, 1fr); }
+  .timeline-steps { grid-template-columns: repeat(2, 1fr); }
+  .stats-container { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .hero-title { font-size: 36px; }
+  .hero-subtitle { font-size: 16px; }
+  .pillar-grid { grid-template-columns: 1fr; }
+  .recruitment-cta-box { flex-direction: column; text-align: center; }
+}
+
 /* 页脚 */
 .portal-footer {
   background: #0a0f1d;
