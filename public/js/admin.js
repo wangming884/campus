@@ -627,6 +627,15 @@ async function loadUsers() {
                 ⚙️ 权限调度
               </button>
               ${quickBtns}
+              <button class="btn btn-outline btn-sm" onclick="resetUserPassword(${u.id})" title="重置该用户密码为统一初始密码 123456" style="color: #d97706; border-color: #d97706;">
+                🔒 重置密码
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="openSendEmailModal(${u.id})" title="向该用户发送自定义邮件" style="color: #6366f1; border-color: #6366f1;">
+                📧 发送邮件
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="deleteUserAccount(${u.id})" title="删除该用户账号及其所有关联数据" style="color: #ef4444; border-color: #ef4444;">
+                🗑️ 删除账号
+              </button>
             </div>
           `;
         }
@@ -1331,5 +1340,182 @@ async function deleteMessageAdmin(messageId) {
     }
   } catch (err) {
     showToast(err.message, 'error');
+  }
+}
+
+// ==================== 10. 管理员重置用户密码 ====================
+async function resetUserPassword(userId) {
+  const target = cachedUsers.find(u => u.id == userId);
+  const userName = target ? target.name : `用户#${userId}`;
+
+  if (!confirm(`确定要重置【${userName}】的登录密码为统一初始密码【123456】吗？\n\n重置后该用户需使用新密码 123456 重新登录。此操作不可撤回！`)) {
+    return;
+  }
+
+  try {
+    const res = await apiRequest(`/users/${userId}/reset-password`, {
+      method: 'POST'
+    });
+
+    if (res.success) {
+      showToast(res.message, 'success', 6000);
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+// 管理员/超管删除用户账号
+async function deleteUserAccount(userId) {
+  const target = cachedUsers.find(u => u.id == userId);
+  const userName = target ? target.name : `用户#${userId}`;
+  const roleName = target ? getRoleName(target.role) : '用户';
+
+  if (!confirm(`⚠️ 高危操作确认\n\n确定要永久删除【${userName}】（${roleName}）的账号吗？\n\n此操作将同时删除该用户的所有：\n- 入社申请记录\n- 活动提案与投票\n- 留言互动\n\n此操作不可撤回！请再次确认！`)) {
+    return;
+  }
+
+  // 二次确认
+  if (!confirm(`🔴 最终确认：删除【${userName}】的账号\n\n请输入 "确认删除" 继续（直接点确定即可，此为最后提醒）`)) {
+    return;
+  }
+
+  try {
+    const res = await apiRequest(`/users/${userId}`, {
+      method: 'DELETE'
+    });
+
+    if (res.success) {
+      showToast(res.message, 'success', 6000);
+      loadUsers();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+// ==================== 11. 管理员向单个用户发送自定义邮件 ====================
+let currentSendEmailUserId = null;
+let cachedRecipients = [];
+
+async function openSendEmailModal(userId) {
+  currentSendEmailUserId = userId;
+  const target = cachedUsers.find(u => u.id == userId);
+  if (!target) {
+    showToast('未找到该用户信息', 'error');
+    return;
+  }
+
+  document.getElementById('send-email-recipient-info').innerHTML = `
+    <div style="font-weight: 700; font-size: 15px; color: #0f172a;">${escapeHtml(target.name)}</div>
+    <div style="font-size: 13px; color: #64748b; margin-top: 2px;">
+      ${escapeHtml(target.email)} &nbsp;|&nbsp; ${getRoleBadge(target.role)}
+      &nbsp;|&nbsp; ${escapeHtml(target.college || '')} ${escapeHtml(target.className || '')}
+    </div>
+  `;
+
+  document.getElementById('send-email-subject').value = '';
+  document.getElementById('send-email-content').value = '';
+
+  openModal('modal-send-email');
+}
+
+async function handleSendEmail(e) {
+  e.preventDefault();
+  if (!currentSendEmailUserId) return;
+
+  const subject = document.getElementById('send-email-subject').value.trim();
+  const html_content = document.getElementById('send-email-content').value.trim();
+
+  if (!subject) {
+    showToast('请输入邮件主题', 'warning');
+    return;
+  }
+
+  if (!html_content) {
+    showToast('请输入邮件正文内容', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-send-email');
+  btn.disabled = true;
+  btn.innerText = '正在发送邮件...';
+
+  try {
+    const res = await apiRequest('/mail/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        to_user_id: currentSendEmailUserId,
+        subject: subject,
+        html_content: html_content
+      })
+    });
+
+    if (res.success) {
+      closeModal('modal-send-email');
+      showToast(res.message, 'success', 5000);
+      loadMailLogs();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '🚀 确认发送邮件';
+  }
+}
+
+async function openSendEmailModalAny() {
+  currentSendEmailUserId = null;
+  try {
+    const res = await apiRequest('/mail/recipients');
+    if (res.success) {
+      cachedRecipients = res.data || [];
+
+      const recipientSelect = document.getElementById('send-email-recipient-select');
+      if (recipientSelect) {
+        recipientSelect.innerHTML = '<option value="">-- 请选择收件人 --</option>' +
+          cachedRecipients.map(u => `
+            <option value="${u.id}">
+              ${escapeHtml(u.name)} - ${escapeHtml(u.email)} (${getRoleName(u.role)})
+            </option>
+          `).join('');
+      }
+    }
+  } catch (e) {
+    console.error('Fetch recipients error:', e);
+  }
+
+  document.getElementById('send-email-recipient-info').innerHTML = `
+    <div style="color: #64748b; font-size: 14px;">请从下拉列表中选择一位目标收件人</div>
+  `;
+
+  document.getElementById('send-email-subject').value = '';
+  document.getElementById('send-email-content').value = '';
+
+  openModal('modal-send-email');
+}
+
+function onRecipientSelectChanged() {
+  const selectEl = document.getElementById('send-email-recipient-select');
+  const userId = selectEl ? parseInt(selectEl.value) : null;
+
+  if (!userId) {
+    currentSendEmailUserId = null;
+    document.getElementById('send-email-recipient-info').innerHTML = `
+      <div style="color: #64748b; font-size: 14px;">请从下拉列表中选择一位目标收件人</div>
+    `;
+    return;
+  }
+
+  currentSendEmailUserId = userId;
+  const target = cachedRecipients.find(u => u.id === userId) || cachedUsers.find(u => u.id === userId);
+  if (target) {
+    document.getElementById('send-email-recipient-info').innerHTML = `
+      <div style="font-weight: 700; font-size: 15px; color: #0f172a;">${escapeHtml(target.name)}</div>
+      <div style="font-size: 13px; color: #64748b; margin-top: 2px;">
+        ${escapeHtml(target.email)} &nbsp;|&nbsp; ${getRoleBadge(target.role)}
+        &nbsp;|&nbsp; ${escapeHtml(target.college || '')} ${escapeHtml(target.className || '')}
+      </div>
+    `;
   }
 }

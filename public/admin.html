@@ -648,7 +648,12 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">📫 系统发信日志与历史记录 (录取/驳回/测试)</div>
-              <button class="btn btn-outline btn-sm" onclick="loadMailLogs()">刷新日志</button>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary btn-sm" onclick="openSendEmailModalAny()">
+                  ✍️ 编写自定义邮件
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="loadMailLogs()">🔄 刷新日志</button>
+              </div>
             </div>
             <div class="card-body" style="padding: 0;">
               <div class="data-table-wrap">
@@ -915,6 +920,55 @@
           <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
             <button type="button" class="btn btn-outline" onclick="closeModal('modal-dispatch-role')">取消</button>
             <button type="submit" class="btn btn-primary" id="btn-submit-dispatch-role">确认调度权限</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 向单个用户发送邮件模态框 ==================== -->
+  <div class="modal-overlay" id="modal-send-email">
+    <div class="modal-container" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title">📧 向指定用户发送邮件</h3>
+        <button class="modal-close" onclick="closeModal('modal-send-email')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 从用户列表直接打开的自动填充收件人信息区域 -->
+        <div id="send-email-recipient-info" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; min-height: 50px;">
+          加载收件人信息中...
+        </div>
+
+        <!-- 通用的收件人下拉选择器（从邮件页面打开时使用） -->
+        <div class="form-group" id="send-email-recipient-select-group" style="margin-bottom: 16px;">
+          <label class="form-label" style="font-weight: 700;">或从用户列表中另选收件人</label>
+          <div style="display: flex; gap: 10px;">
+            <select class="form-control" id="send-email-recipient-select" style="flex-grow: 1;" onchange="onRecipientSelectChanged()">
+              <option value="">-- 收件人将从用户表自动填充 --</option>
+            </select>
+            <button type="button" class="btn btn-outline btn-sm" onclick="openSendEmailModalAny()" title="刷新收件人列表">
+              🔄 刷新列表
+            </button>
+          </div>
+        </div>
+
+        <form id="form-send-email" onsubmit="handleSendEmail(event)">
+          <div class="form-group">
+            <label class="form-label">邮件主题 <span class="required">*</span></label>
+            <input type="text" class="form-control" id="send-email-subject" required placeholder="例如：【录取通知】恭喜你通过社团面试 / 【活动通知】本周五技术沙龙">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">邮件正文内容（支持 HTML 格式） <span class="required">*</span></label>
+            <textarea class="form-control" id="send-email-content" rows="8" required placeholder="在此编写邮件正文内容，支持 HTML 格式排版...&#10;&#10;例如：&#10;<p>亲爱的同学，你好！</p>&#10;<p>恭喜你成功通过...</p>"></textarea>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+              💡 提示：可以使用 &lt;h2&gt;、&lt;p&gt;、&lt;strong&gt;、&lt;br&gt; 等 HTML 标签来美化邮件排版
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-send-email')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-send-email">🚀 确认发送邮件</button>
           </div>
         </form>
       </div>

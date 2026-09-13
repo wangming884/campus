@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { query, execute } = require('../db/database');
+const { query, getOne, execute } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { getMailSettings, sendEmail } = require('../services/mailer');
 
@@ -114,6 +114,64 @@ router.get('/logs', authenticateToken, requireRole(['admin', 'super_admin']), as
   } catch (error) {
     console.error('Fetch mail logs error:', error);
     res.status(500).json({ success: false, message: '获取邮件日志失败: ' + error.message });
+  }
+});
+
+// 5. 获取可发送邮件的收件人用户列表 (管理员和超级管理员)
+router.get('/recipients', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const users = await query(
+      'SELECT id, name, email, role, college, className FROM users ORDER BY id ASC'
+    );
+    res.json({ success: true, data: users });
+  } catch (error) {
+    console.error('Fetch recipients error:', error);
+    res.status(500).json({ success: false, message: '获取收件人列表失败: ' + error.message });
+  }
+});
+
+// 6. 管理员向单个用户发送自定义邮件
+router.post('/send', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { to_user_id, subject, html_content } = req.body;
+
+    if (!to_user_id || !subject || !html_content) {
+      return res.status(400).json({ success: false, message: '请完整填写收件人、邮件主题和正文内容' });
+    }
+
+    const targetUser = await getOne('SELECT id, name, email FROM users WHERE id = ?', [to_user_id]);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: '目标收件人用户不存在' });
+    }
+
+    if (!targetUser.email) {
+      return res.status(400).json({ success: false, message: '该用户未登记邮箱地址' });
+    }
+
+    const result = await sendEmail({
+      to: targetUser.email,
+      toName: targetUser.name,
+      subject: subject,
+      html: html_content,
+      text: html_content.replace(/<[^>]*>/g, '')
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.simulated
+          ? `【模拟发信成功】邮件已记录至后台日志，收件人：${targetUser.name} (${targetUser.email})`
+          : `邮件已成功发送至 ${targetUser.name} (${targetUser.email})`
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: `发信失败：${result.error}`
+      });
+    }
+  } catch (error) {
+    console.error('Send mail error:', error);
+    res.status(500).json({ success: false, message: '发送邮件失败: ' + error.message });
   }
 });
 

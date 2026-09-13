@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const { query, getOne, execute } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
@@ -191,6 +192,88 @@ router.post('/:id/demote', authenticateToken, requireRole(['admin', 'super_admin
   } catch (error) {
     console.error('Demote user error:', error);
     res.status(500).json({ success: false, message: '操作失败: ' + error.message });
+  }
+});
+
+// 5. 管理员/超管重置用户密码为统一初始密码 123456
+router.post('/:id/reset-password', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const targetUser = await getOne('SELECT * FROM users WHERE id = ?', [targetUserId]);
+
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+
+    // 超管不可被重置密码
+    if (targetUser.role === 'super_admin') {
+      return res.status(403).json({ success: false, message: '超级管理员的密码不可通过系统重置' });
+    }
+
+    // 权限校验：管理员只能重置 user 和 member 的密码；超管还可以重置 admin 的密码
+    if (req.user.role !== 'super_admin') {
+      if (targetUser.role === 'admin') {
+        return res.status(403).json({ success: false, message: '只有超级管理员有权重置管理员的密码！' });
+      }
+    }
+
+    // 将密码重置为 123456
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync('123456', salt);
+    await execute('UPDATE users SET password = ? WHERE id = ?', [hash, targetUserId]);
+
+    const roleNameMap = { user: '普通用户', member: '社团成员', admin: '管理员' };
+    res.json({
+      success: true,
+      message: `已成功将【${targetUser.name}】（${roleNameMap[targetUser.role] || targetUser.role}）的登录密码重置为：123456`
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: '重置密码失败: ' + error.message });
+  }
+});
+
+// 6. 管理员/超管删除用户账号
+router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const targetUser = await getOne('SELECT * FROM users WHERE id = ?', [targetUserId]);
+
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+
+    if (targetUser.role === 'super_admin') {
+      return res.status(403).json({ success: false, message: '超级管理员账号不可被删除！' });
+    }
+
+    if (req.user.role !== 'super_admin' && targetUser.role === 'admin') {
+      return res.status(403).json({ success: false, message: '只有超级管理员有权删除管理员账号！' });
+    }
+
+    if (parseInt(targetUserId) === parseInt(req.user.id)) {
+      return res.status(400).json({ success: false, message: '不能删除自己的账号！' });
+    }
+
+    const roleNameMap = { user: '普通用户', member: '社团成员', admin: '管理员' };
+
+    // 先删除关联数据
+    await execute('DELETE FROM proposal_votes WHERE user_id = ?', [targetUserId]);
+    await execute('DELETE FROM membership_applications WHERE user_id = ?', [targetUserId]);
+    await execute('DELETE FROM member_messages WHERE user_id = ?', [targetUserId]);
+    await execute('DELETE FROM activity_proposals WHERE user_id = ?', [targetUserId]);
+    await execute('DELETE FROM mail_logs WHERE id IN (SELECT id FROM mail_logs WHERE to_email = ?)', [targetUser.email]);
+
+    // 最后删除用户本身
+    await execute('DELETE FROM users WHERE id = ?', [targetUserId]);
+
+    res.json({
+      success: true,
+      message: `已成功删除【${targetUser.name}】（${roleNameMap[targetUser.role] || targetUser.role}）的账号及其关联数据`
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ success: false, message: '删除用户失败: ' + error.message });
   }
 });
 

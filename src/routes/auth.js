@@ -161,4 +161,43 @@ router.put('/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// 修改密码 (所有登录用户均可操作)
+router.put('/password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: '请提供当前密码和新密码' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: '新密码长度至少为 6 位' });
+    }
+
+    // 验证当前密码是否正确
+    const user = await getOne('SELECT password FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(404).json({ success: false, message: '用户不存在' });
+    }
+
+    const isMatch = bcrypt.compareSync(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: '当前密码错误，无法修改密码' });
+    }
+
+    // 对新密码进行哈希加密后更新
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(newPassword, salt);
+    await execute('UPDATE users SET password = ? WHERE id = ?', [hash, req.user.id]);
+
+    res.json({
+      success: true,
+      message: '密码修改成功！请使用新密码重新登录'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ success: false, message: '修改密码失败: ' + error.message });
+  }
+});
+
 module.exports = router;

@@ -492,6 +492,43 @@ async function handleUpdateProfile(e) {
   }
 }
 
+// 修改密码
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const currentPassword = document.getElementById('change-current-password').value;
+  const newPassword = document.getElementById('change-new-password').value;
+  const confirmPassword = document.getElementById('change-confirm-password').value;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showToast('请完整填写当前密码、新密码和确认密码', 'warning');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showToast('新密码长度至少为 6 位', 'warning');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showToast('两次输入的新密码不一致，请重新确认', 'warning');
+    return;
+  }
+
+  try {
+    const res = await apiRequest('/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    if (res.success) {
+      showToast(res.message, 'success', 5000);
+      document.getElementById('form-change-password').reset();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
 // ==================== Tab 4: 活动提案与决议 (Proposals) ====================
 function openNewProposalModal() {
   if (!['member', 'admin', 'super_admin'].includes(currentUser.role)) {

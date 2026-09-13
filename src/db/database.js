@@ -22,6 +22,13 @@ let sqliteDb = null;
 
 // 数据库初始化主方法
 async function initDatabase(retries = 5, delay = 3000) {
+  // 若环境变量指定直接使用 SQLite，跳过 MySQL 连接尝试
+  if (process.env.USE_SQLITE === 'true') {
+    console.log('[DB] 🔧 已配置为直接使用本地嵌入式数据库（SQLite）模式');
+    initFallbackSQLite();
+    return false;
+  }
+
   const host = process.env.DB_HOST || 'localhost';
   const port = parseInt(process.env.DB_PORT || '3307');
   const user = process.env.DB_USER || 'root';

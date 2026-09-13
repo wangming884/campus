@@ -15,7 +15,7 @@ router.get('/', optionalAuth, async (req, res) => {
       params.push(status);
     }
 
-    sql += ' ORDER BY status = "approved_to_hold" DESC, status = "voting" DESC, vote_count DESC, id DESC';
+    sql += " ORDER BY status = 'approved_to_hold' DESC, status = 'voting' DESC, vote_count DESC, id DESC";
 
     const proposals = await query(sql, params);
 

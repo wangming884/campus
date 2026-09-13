@@ -276,6 +276,34 @@
             <!-- 账号安全与权限说明 -->
             <div class="card">
               <div class="card-header">
+                <div class="card-title">🔒 修改登录密码</div>
+              </div>
+              <div class="card-body">
+                <form id="form-change-password" onsubmit="handleChangePassword(event)">
+                  <div class="form-group">
+                    <label class="form-label">当前登录密码 <span class="required">*</span></label>
+                    <input type="password" class="form-control" id="change-current-password" required placeholder="请输入当前密码">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">新设密码 <span class="required">*</span></label>
+                    <input type="password" class="form-control" id="change-new-password" required placeholder="请输入新密码（至少6位）" minlength="6">
+                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">密码长度至少6位，建议包含字母与数字组合</div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">再次确认新设密码 <span class="required">*</span></label>
+                    <input type="password" class="form-control" id="change-confirm-password" required placeholder="请再次输入新密码" minlength="6">
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                    🔒 确认修改密码
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- 账号安全与权限说明 -->
+            <div class="card">
+              <div class="card-header">
                 <div class="card-title">🛡️ 账户权限与服务规范</div>
               </div>
               <div class="card-body">
