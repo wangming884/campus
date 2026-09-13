@@ -88,7 +88,7 @@
           const page = res.data;
           document.title = `${page.title} - 高校学生社团`;
           document.getElementById('custom-page-title').innerText = page.title;
-          document.getElementById('custom-page-desc').innerText = page.seo_description || '青年极客创新工坊专属空间';
+          document.getElementById('custom-page-desc').innerText = page.seo_description || '发明创新协会专属空间';
           document.getElementById('custom-page-date').innerText = `🕒 最后更新：${formatDateTime(page.updated_at || page.created_at)}`;
           document.getElementById('custom-page-path').innerText = `🔗 路由：${page.path}`;
 

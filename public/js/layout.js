@@ -59,7 +59,7 @@ function renderSharedNav() {
     <div class="container nav-wrapper">
       <a href="/" class="brand-logo">
         <div class="brand-icon">⚡</div>
-        <span id="nav-club-name">青年极客创新工坊</span>
+        <span id="nav-club-name">发明创新协会</span>
       </a>
 
       <nav>
@@ -146,7 +146,7 @@ function renderSharedFooter() {
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <h4 id="footer-club-name">青年极客创新工坊</h4>
+          <h4 id="footer-club-name">发明创新协会</h4>
           <p id="footer-club-subtitle">青年科技与创新创业实践平台，凝聚青年智慧，点燃创新火花。深耕代码实践与前沿科技探索。</p>
           <div style="margin-top: 16px; font-size: 13px; color: #64748b;">
             纳新周期：每年春季与秋季开学前三周 · 面向全校公开招新
@@ -156,7 +156,7 @@ function renderSharedFooter() {
         <div class="footer-col">
           <h5>联系社团</h5>
           <ul id="footer-contact-list">
-            <li>📍 地址：大学生活动中心 302 青年极客创客工坊</li>
+            <li>📍 地址：大学生活动中心 302 发明创新协会工坊</li>
             <li>📧 官方邮箱：contact@campus.club</li>
             <li>🐧 招新QQ群：889217643</li>
             <li>📱 微信公众号：Campus_Geek_Club</li>

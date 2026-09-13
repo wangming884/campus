@@ -323,7 +323,7 @@ async function seedMySQLData() {
 
     const defaultContact = JSON.stringify({
       email: 'contact@campus.club',
-      location: '大学生活动中心 302 青年极客创客工坊',
+      location: '大学生活动中心 302 发明创新协会工坊',
       qqGroup: '889217643',
       wechat: 'Campus_Geek_Club',
       recruitmentDate: '每年春季 / 秋季学期初开学前三周'
@@ -335,12 +335,12 @@ async function seedMySQLData() {
         about_title, about_content, stats_json, departments_json, contact_json
       ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      '青年极客创新工坊 (Youth Geek Club)',
+      '发明创新协会',
       '✨ 2026 秋季招新现已全面开启',
       '追逐代码与科技之光，共筑大学卓越青春',
       '我们汇聚全校对科技研发、创意策划与融媒宣传充满热忱的青年学子，提供施展才华的开放平台与前沿实战空间。',
       '关于我们的社团',
-      '青年极客创新工坊成立于2018年，是校团委直属的五星级科技学术类社团。社团始终坚持“求真、务实、探索、创新”的初心，以项目实战驱动技能成长，以多元活动凝聚青年力量。社团拥有独立的工作室硬件工位与全天候开发环境，定期举办“极客创想夜”、“名企参访”、“全国高校算法友谊赛”等活动，已累计培养数百位进入顶尖大厂与优秀学府深造的杰出校友。',
+      '发明创新协会成立于2018年，是校团委直属的五星级科技学术类社团。社团始终坚持“求真、务实、探索、创新”的初心，以项目实战驱动技能成长，以多元活动凝聚青年力量。社团拥有独立的工作室硬件工位与全天候开发环境，定期举办“极客创想夜”、“名企参访”、“全国高校算法友谊赛”等活动，已累计培养数百位进入顶尖大厂与优秀学府深造的杰出校友。',
       defaultStats,
       defaultDepartments,
       defaultContact
@@ -414,7 +414,7 @@ async function seedMySQLData() {
     { key: 'smtp_secure', value: 'true' },
     { key: 'smtp_user', value: 'youth_geek_club@qq.com' },
     { key: 'smtp_pass', value: '' },
-    { key: 'smtp_sender_name', value: '青年极客社团招新组' },
+    { key: 'smtp_sender_name', value: '发明创新协会招新组' },
     { key: 'mock_mode', value: 'true' }
   ];
 
@@ -436,7 +436,7 @@ async function seedMySQLData() {
         is_system: 1,
         is_nav_visible: 1,
         sort_order: 1,
-        seo_description: '高校青年极客社团官方主页，探索前沿科技，驱动创新创造。',
+        seo_description: '高校发明创新协会官方主页，探索前沿科技，驱动创新创造。',
         content: '社团官方门户主页，包含 Hero 动态光效、四大硬核特色与核心数据指标。'
       },
       {
@@ -446,7 +446,7 @@ async function seedMySQLData() {
         is_system: 1,
         is_nav_visible: 1,
         sort_order: 2,
-        seo_description: '青年极客创新工坊发展历程、荣誉资质与社团核心文化价值观。',
+        seo_description: '发明创新协会发展历程、荣誉资质与社团核心文化价值观。',
         content: '社团发展历程编年史时间轴（2018-2026）、四大核心文化价值观卡片与国家级/省部级荣誉墙。'
       },
       {
@@ -531,7 +531,7 @@ async function seedMySQLData() {
       '《开源鸿蒙与端侧轻量AI开发实战工坊》',
       '技术沙龙',
       '2026年10月下旬 周六下午 14:00-17:30',
-      '大学生活动中心 302 青年极客创客工坊',
+      '大学生活动中心 302 发明创新协会工坊',
       '约 600 元（物料与茶歇）',
       '面向全校编程爱好者与社内成员，邀请业界一线导师现场指导嵌入式开源鸿蒙环境搭建与端侧 AI 模型轻量化实战部署。',
       '1. 场地投影与网络环境提前联调\n2. 社团提供20套开源鸿蒙开发套件供现场编组实操\n3. 现场茶歇准备与参会极客贴纸派发\n4. 设立现场最佳实战Demo评优奖励'
