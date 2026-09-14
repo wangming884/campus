@@ -81,6 +81,10 @@
           <span class="nav-item-icon">🎯</span>
           <span>发展意向方向</span>
         </div>
+        <div class="nav-item" onclick="switchAdminTab('categories')" id="nav-tab-categories">
+          <span class="nav-item-icon">🏷️</span>
+          <span>活动类别管理</span>
+        </div>
         <div class="nav-item" onclick="switchAdminTab('role-applications')" id="nav-tab-role-apps">
           <span class="nav-item-icon">🔄</span>
           <span>角色升级申请</span>
@@ -644,7 +648,35 @@
           </div>
         </div>
 
-        <!-- ==================== Tab 5c: 角色升级申请审核 ==================== -->
+        <!-- ==================== Tab 5c: 活动类别管理 ==================== -->
+        <div class="tab-pane" id="pane-categories">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🏷️ 活动类别选项管理</div>
+              <button class="btn btn-primary" onclick="openAddCategoryModal()">＋ 新增类别</button>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">序号</th>
+                      <th>活动类别标题</th>
+                      <th style="width: 80px;">排序</th>
+                      <th style="width: 80px;">状态</th>
+                      <th style="width: 160px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="categories-table-body">
+                    <tr><td colspan="5" style="text-align:center;padding:30px;">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab 5d: 角色升级申请审核 ==================== -->
         <div class="tab-pane" id="pane-role-applications">
           <div class="card">
             <div class="card-header">

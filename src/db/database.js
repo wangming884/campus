@@ -291,6 +291,16 @@ async function createMySQLTables() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS activity_categories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      title VARCHAR(200) NOT NULL,
+      sort_order INT DEFAULT 0,
+      is_active TINYINT DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS role_applications (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
@@ -608,6 +618,22 @@ async function seedMySQLData() {
       await pool.query('INSERT INTO development_directions (title, sort_order, is_active) VALUES (?, ?, 1)', [d.title, d.sort_order]);
     }
   }
+
+  // 10. 初始化活动类别 (activity_categories)
+  const [catCount] = await pool.query('SELECT COUNT(*) as count FROM activity_categories');
+  if (catCount[0].count === 0) {
+    const defaultCategories = [
+      { title: '技术沙龙 (工作坊/讲座/实战)', sort_order: 1 },
+      { title: '创客黑客松 (马拉松比赛/Demo秀)', sort_order: 2 },
+      { title: '破冰团建 (交流会/联谊/户外桌游)', sort_order: 3 },
+      { title: '名企参访 (行业实地观摩)', sort_order: 4 },
+      { title: '竞赛培训 (挑战杯/互联网+/算法)', sort_order: 5 }
+    ];
+
+    for (const c of defaultCategories) {
+      await pool.query('INSERT INTO activity_categories (title, sort_order, is_active) VALUES (?, ?, 1)', [c.title, c.sort_order]);
+    }
+  }
 }
 
 // 统一异步查询适配器
@@ -801,6 +827,13 @@ function initFallbackSQLite() {
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS activity_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS role_applications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -858,6 +891,21 @@ function initFallbackSQLite() {
     const insertStmt = sqliteDb.prepare('INSERT INTO development_directions (title, sort_order, is_active) VALUES (?, ?, 1)');
     for (const d of dirs) {
       insertStmt.run(d.title, d.sort_order);
+    }
+  }
+
+  const catCount = sqliteDb.prepare('SELECT COUNT(*) as c FROM activity_categories').get();
+  if (!catCount || catCount.c === 0) {
+    const cats = [
+      { title: '技术沙龙 (工作坊/讲座/实战)', sort_order: 1 },
+      { title: '创客黑客松 (马拉松比赛/Demo秀)', sort_order: 2 },
+      { title: '破冰团建 (交流会/联谊/户外桌游)', sort_order: 3 },
+      { title: '名企参访 (行业实地观摩)', sort_order: 4 },
+      { title: '竞赛培训 (挑战杯/互联网+/算法)', sort_order: 5 }
+    ];
+    const insertCat = sqliteDb.prepare('INSERT INTO activity_categories (title, sort_order, is_active) VALUES (?, ?, 1)');
+    for (const c of cats) {
+      insertCat.run(c.title, c.sort_order);
     }
   }
 }

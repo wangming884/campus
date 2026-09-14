@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: your-registry/campus-club:latest
     container_name: campus-web-app
     restart: always
     ports:
@@ -12,12 +12,9 @@ services:
       - DB_PASSWORD=your_mysql_password
       - DB_NAME=campus_club
       - PORT=3000
-      - JWT_SECRET=campus_club_jwt_secret_key_2026
+      - JWT_SECRET=change_me_to_random_string
       - NODE_ENV=production
     volumes:
-      - ./public:/app/public
-      - ./src:/app/src
-      - ./server.js:/app/server.js
       - campus_uploads_data:/app/uploads
 
 volumes:

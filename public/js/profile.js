@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 全局刷新数据
 async function refreshProfileData() {
   loadDirectionsForDropdowns();
+  loadCategoriesForDropdown();
   renderQuickActions();
   renderAppTabActions();
   await Promise.allSettled([
@@ -230,16 +231,16 @@ function renderOverviewPane() {
           </div>
           <div class="cert-meta-grid">
             <div><strong>🪪 凭据编号：</strong>MEMBER-${String(currentUser.id).padStart(5, '0')}</div>
-            <div><strong>🎓 认证权限：</strong>全天候极客工位 & 云主机预约</div>
-            <div><strong>🏛️ 签发机构：</strong>高校学生极客社团理事会</div>
+            <div><strong>🎓 认证权限：</strong>${getRoleName(currentUser.role)}</div>
+            <div><strong>🏛️ 签发机构：</strong>发明创新协会</div>
             <div><strong>📅 状态：</strong>已激活生效中</div>
           </div>
           <div class="cert-perks-list">
-            <span class="cert-perk-pill">⚡ 302 创客物理工位自由入驻</span>
-            <span class="cert-perk-pill">🚀 私有 GPU 算力集群调度</span>
-            <span class="cert-perk-pill">🗳️ 社团活动共创发起与决议投票</span>
+            <span class="cert-perk-pill">⚡ 竞赛指导</span>
+            <span class="cert-perk-pill">🚀 专利撰写指导</span>
+            <span class="cert-perk-pill">🗳️ 社团活动发起与决议投票</span>
             <span class="cert-perk-pill">💬 社内交流发言畅聊</span>
-            <span class="cert-perk-pill">📄 阿里/腾讯/字节校招专属内推绿卡</span>
+            <span class="cert-perk-pill">📄 创新创业学分</span>
           </div>
         </div>
       `;
@@ -309,6 +310,24 @@ async function loadDirectionsForDropdowns() {
     }
   } catch (e) {
     console.error('Load directions failed:', e);
+  }
+}
+
+async function loadCategoriesForDropdown() {
+  try {
+    const res = await apiRequest('/categories');
+    if (res.success && res.data) {
+      const options = res.data.map(c =>
+        `<option value="${escapeHtml(c.title)}">${escapeHtml(c.title)}</option>`
+      ).join('');
+
+      const catSelect = document.getElementById('prop-category');
+      if (catSelect) {
+        catSelect.innerHTML = `<option value="">-- 请选择活动类别 --</option>${options}`;
+      }
+    }
+  } catch (e) {
+    console.error('Load categories failed:', e);
   }
 }
 

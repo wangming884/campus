@@ -15,6 +15,7 @@ const pageRoutes = require('./src/routes/pages');
 const messageRoutes = require('./src/routes/messages');
 const proposalRoutes = require('./src/routes/proposals');
 const directionsRoutes = require('./src/routes/directions');
+const categoriesRoutes = require('./src/routes/categories');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ app.use('/api/pages', pageRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/directions', directionsRoutes);
+app.use('/api/categories', categoriesRoutes);
 
 // 多独立网页路由
 app.get('/', (req, res) => {

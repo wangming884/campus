@@ -111,8 +111,10 @@ async function apiRequest(endpoint, options = {}) {
     }
     return data;
   } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error);
-    throw error;
+    // 给 JSON 解析错误提供更友好的提示
+    const msg = error instanceof SyntaxError ? '服务器返回数据格式异常，请确认服务已重启' : error.message;
+    console.error(`API Error [${endpoint}]:`, msg);
+    throw new Error(msg);
   }
 }
 

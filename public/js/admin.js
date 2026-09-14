@@ -99,6 +99,7 @@ function switchAdminTab(tabName) {
     users: '👥 全体成员目录与 RBAC 权限调度',
     mail: '📧 邮件服务配置与发信日志模拟器',
     directions: '🎯 发展意向方向选项管理',
+    categories: '🏷️ 活动类别选项管理',
     'role-applications': '🔄 社团成员晋升管理员申请审核'
   };
   document.getElementById('topbar-page-title').innerHTML = `<span>${titleMap[tabName] || '管理后台'}</span>`;
@@ -115,6 +116,7 @@ function switchAdminTab(tabName) {
     case 'users': loadUsers(); break;
     case 'mail': loadMailSettingsAndLogs(); break;
     case 'directions': loadDirectionsAdmin(); break;
+    case 'categories': loadCategoriesAdmin(); break;
     case 'role-applications': loadRoleApplicationsAdmin(); break;
   }
 }
@@ -1764,6 +1766,105 @@ async function deleteDirection(dirId) {
     if (res.success) {
       showToast(res.message, 'success');
       loadDirectionsAdmin();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+// ==================== 10.5b 活动类别管理 ====================
+let cachedCategories = [];
+
+async function loadCategoriesAdmin() {
+  const tbody = document.getElementById('categories-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;">加载活动类别中...</td></tr>';
+  try {
+    const res = await apiRequest('/categories/manage');
+    if (res.success) {
+      cachedCategories = res.data || [];
+      if (cachedCategories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#64748b;">暂无活动类别，点击「新增类别」开始创建</td></tr>';
+        return;
+      }
+      tbody.innerHTML = cachedCategories.map((c, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${escapeHtml(c.title)}</strong></td>
+          <td>${c.sort_order}</td>
+          <td>${c.is_active ? '<span class="badge badge-member">启用</span>' : '<span class="badge" style="background:#f1f5f9;color:#94a3b8;">停用</span>'}</td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" onclick="openEditCategoryModal(${c.id})">✏️ 编辑</button>
+              <button class="btn btn-outline btn-sm" onclick="toggleCategoryActive(${c.id})" style="color:${c.is_active ? '#d97706' : '#059669'};border-color:${c.is_active ? '#d97706' : '#059669'};">${c.is_active ? '停用' : '启用'}</button>
+              <button class="btn btn-outline btn-sm" onclick="deleteCategory(${c.id})" style="color:#ef4444;border-color:#ef4444;">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:30px;color:#ef4444;">加载失败: ${error.message}</td></tr>`;
+  }
+}
+
+function openAddCategoryModal() {
+  const title = prompt('请输入新活动类别名称：');
+  if (!title || !title.trim()) return;
+  const order = prompt('请输入排序序号（数字越小越靠前，默认0）：', '0');
+  saveCategory({ title: title.trim(), sort_order: parseInt(order) || 0 });
+}
+
+function openEditCategoryModal(catId) {
+  const c = cachedCategories.find(x => x.id === catId);
+  if (!c) return;
+  const title = prompt('修改活动类别名称：', c.title);
+  if (!title || !title.trim()) return;
+  const order = prompt('修改排序序号：', c.sort_order);
+  const active = confirm('该类别是否启用？\n「确定」= 启用，「取消」= 停用');
+  saveCategory({ id: catId, title: title.trim(), sort_order: parseInt(order) || 0, is_active: active ? 1 : 0 });
+}
+
+async function saveCategory(data) {
+  try {
+    const method = data.id ? 'PUT' : 'POST';
+    const url = data.id ? `/categories/${data.id}` : '/categories';
+    const res = await apiRequest(url, { method, body: data });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadCategoriesAdmin();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function toggleCategoryActive(catId) {
+  const c = cachedCategories.find(x => x.id === catId);
+  if (!c) return;
+  try {
+    const res = await apiRequest(`/categories/${catId}`, {
+      method: 'PUT',
+      body: { is_active: c.is_active ? 0 : 1 }
+    });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadCategoriesAdmin();
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function deleteCategory(catId) {
+  const c = cachedCategories.find(x => x.id === catId);
+  if (!c) return;
+  if (!confirm(`确定要删除活动类别「${c.title}」吗？`)) return;
+  try {
+    const res = await apiRequest(`/categories/${catId}`, { method: 'DELETE' });
+    if (res.success) {
+      showToast(res.message, 'success');
+      loadCategoriesAdmin();
     }
   } catch (error) {
     showToast(error.message, 'error');
