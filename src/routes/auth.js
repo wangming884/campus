@@ -1,18 +1,88 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { getOne, execute } = require('../db/database');
 const { generateToken, authenticateToken } = require('../middleware/auth');
+const { sendEmail } = require('../services/mailer');
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function hashVerificationCode(code) {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+function parseDatabaseDate(value) {
+  if (!value) return NaN;
+  if (value instanceof Date) return value.getTime();
+  const normalized = String(value).replace(' ', 'T');
+  return Date.parse(`${normalized}Z`);
+}
+
+// 发送注册邮箱认证码
+router.post('/send-verification-code', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: '请输入有效的邮箱地址' });
+    }
+
+    const existing = await getOne('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing) {
+      return res.status(400).json({ success: false, message: '该邮箱已被注册，请直接登录' });
+    }
+
+    const previous = await getOne('SELECT sent_at FROM email_verification_codes WHERE email = ?', [email]);
+    if (previous) {
+      const sentAt = parseDatabaseDate(previous.sent_at);
+      if (Number.isFinite(sentAt) && Date.now() - sentAt < 60 * 1000) {
+        return res.status(429).json({ success: false, message: '认证码发送过于频繁，请稍后再试' });
+      }
+    }
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+    const formatDate = date => date.toISOString().slice(0, 19).replace('T', ' ');
+    await execute('REPLACE INTO email_verification_codes (email, code_hash, expires_at, sent_at) VALUES (?, ?, ?, ?)', [
+      email,
+      hashVerificationCode(code),
+      formatDate(expiresAt),
+      formatDate(now)
+    ]);
+
+    const result = await sendEmail({
+      to: email,
+      toName: email,
+      subject: '【注册认证】您的邮箱认证码',
+      html: `<div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 12px;"><h2 style="margin-top: 0;">邮箱认证码</h2><p>您正在注册校园社团系统账号，请使用以下认证码完成注册：</p><div style="font-size: 32px; letter-spacing: 8px; font-weight: 800; color: #2563eb; margin: 24px 0;">${code}</div><p style="color: #64748b;">认证码 10 分钟内有效。如非本人操作，请忽略此邮件。</p></div>`,
+      text: `您的邮箱认证码是：${code}。该认证码 10 分钟内有效。`
+    });
+
+    if (!result.success) {
+      await execute('DELETE FROM email_verification_codes WHERE email = ?', [email]);
+      return res.status(500).json({ success: false, message: '认证邮件发送失败，请稍后重试' });
+    }
+
+    res.json({ success: true, message: result.simulated ? '认证码已生成，当前为模拟发信模式，请在邮件日志中查看' : '认证码已发送到您的邮箱' });
+  } catch (error) {
+    console.error('Send verification code error:', error);
+    res.status(500).json({ success: false, message: '发送认证码失败: ' + error.message });
+  }
+});
 
 // 注册接口 (统一默认成为「普通用户」)
 router.post('/register', async (req, res) => {
   try {
-    const { name, college, className, qq, email, password } = req.body;
+    const { name, college, className, qq, password, verificationCode } = req.body;
+    const email = normalizeEmail(req.body.email);
 
-    if (!name || !college || !className || !qq || !email || !password) {
+    if (!name || !college || !className || !qq || !email || !password || !verificationCode) {
       return res.status(400).json({
         success: false,
-        message: '请完整填写注册信息（姓名、学院、班级、QQ号、邮箱与密码）'
+        message: '请完整填写注册信息及邮箱认证码'
       });
     }
 
@@ -31,6 +101,28 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: '该邮箱已被注册，请直接登录' });
     }
 
+    const verification = await getOne('SELECT code_hash, expires_at FROM email_verification_codes WHERE email = ?', [email]);
+    if (!verification || parseDatabaseDate(verification.expires_at) <= Date.now()) {
+      return res.status(400).json({ success: false, message: '邮箱认证码不存在或已过期，请重新获取' });
+    }
+    if (hashVerificationCode(String(verificationCode).trim()) !== verification.code_hash) {
+      return res.status(400).json({ success: false, message: '邮箱认证码错误，请检查后重试' });
+    }
+
+    const registrationLimitSetting = await getOne(
+      'SELECT value FROM system_settings WHERE `key` = ?',
+      ['registration_limit']
+    );
+    const registrationLimit = Number.parseInt(registrationLimitSetting && registrationLimitSetting.value, 10);
+    const userCountResult = await getOne('SELECT COUNT(*) AS count FROM users');
+    const registeredUserCount = Number(userCountResult && userCountResult.count) || 0;
+    if (Number.isFinite(registrationLimit) && registrationLimit >= 0 && registeredUserCount >= registrationLimit) {
+      return res.status(403).json({
+        success: false,
+        message: `当前注册人数已达到上限（${registrationLimit}人），暂时无法注册新用户`
+      });
+    }
+
     // 密码哈希
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(password, salt);
@@ -40,6 +132,7 @@ router.post('/register', async (req, res) => {
       INSERT INTO users (name, college, className, qq, email, password, role)
       VALUES (?, ?, ?, ?, ?, ?, 'user')
     `, [name.trim(), college.trim(), className.trim(), qq.trim(), email.trim(), hash]);
+    await execute('DELETE FROM email_verification_codes WHERE email = ?', [email]);
 
     const newUser = {
       id: result.lastInsertRowid,

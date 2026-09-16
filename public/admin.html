@@ -579,6 +579,26 @@
             </div>
           </div>
 
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <div class="card-title">🚦 注册人数上限</div>
+              <button class="btn btn-primary" onclick="saveRegistrationLimit()">💾 保存上限</button>
+            </div>
+            <div class="card-body">
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="registration-limit-input">允许的最大注册用户数</label>
+                  <input type="number" class="form-control" id="registration-limit-input" min="1" step="1" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">当前已注册用户数</label>
+                  <div id="registration-limit-current" class="form-control" style="background: #f8fafc;">读取中...</div>
+                </div>
+              </div>
+              <div class="alert alert-info" style="margin-bottom: 0;">达到上限后，普通用户注册接口会暂时关闭；删除用户后会自动释放名额。</div>
+            </div>
+          </div>
+
           <div class="card">
             <div class="card-header">
               <div class="card-title">👥 全体注册用户与角色权限总表</div>

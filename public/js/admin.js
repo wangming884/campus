@@ -699,6 +699,7 @@ async function loadUsers() {
   const keyword = document.getElementById('user-filter-keyword').value;
 
   tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 24px;">加载中...</td></tr>`;
+  await loadRegistrationLimit();
 
   try {
     let url = `/users?role=${role}`;
@@ -799,6 +800,38 @@ async function loadUsers() {
     }
   } catch (error) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--danger);">加载失败: ${error.message}</td></tr>`;
+  }
+}
+
+async function loadRegistrationLimit() {
+  try {
+    const res = await apiRequest('/users/registration-limit');
+    if (res.success && res.data) {
+      document.getElementById('registration-limit-input').value = res.data.limit;
+      document.getElementById('registration-limit-current').innerText = `${res.data.current} 人`;
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function saveRegistrationLimit() {
+  const input = document.getElementById('registration-limit-input');
+  const limit = Number(input.value);
+  if (!Number.isInteger(limit) || limit < 1) {
+    showToast('请输入大于 0 的整数上限', 'warning');
+    return;
+  }
+
+  try {
+    const res = await apiRequest('/users/registration-limit', {
+      method: 'PUT',
+      body: JSON.stringify({ limit })
+    });
+    showToast(res.message, 'success');
+    loadRegistrationLimit();
+  } catch (error) {
+    showToast(error.message, 'error');
   }
 }
 

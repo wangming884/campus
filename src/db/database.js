@@ -200,6 +200,16 @@ async function createMySQLTables() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_verification_codes (
+      email VARCHAR(191) PRIMARY KEY,
+      code_hash VARCHAR(64) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      sent_at DATETIME NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS site_pages (
       id INT AUTO_INCREMENT PRIMARY KEY,
       title VARCHAR(100) NOT NULL,
@@ -490,6 +500,11 @@ async function seedMySQLData() {
     }
   }
 
+  const [registrationLimitSetting] = await pool.query('SELECT `key` FROM system_settings WHERE `key` = ?', ['registration_limit']);
+  if (registrationLimitSetting.length === 0) {
+    await pool.query('INSERT INTO system_settings (`key`, `value`) VALUES (?, ?)', ['registration_limit', '1000']);
+  }
+
   // 6. 初始化核心网页列表 (site_pages)
   const [pageCount] = await pool.query('SELECT COUNT(*) as count FROM site_pages');
   if (pageCount[0].count === 0) {
@@ -762,6 +777,13 @@ function initFallbackSQLite() {
       value TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS email_verification_codes (
+      email TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      sent_at TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS site_pages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -861,6 +883,8 @@ function initFallbackSQLite() {
   } catch (error) {
     if (!/duplicate column name|already exists/i.test(error.message)) throw error;
   }
+
+  sqliteDb.prepare('INSERT OR IGNORE INTO system_settings (key, value) VALUES (?, ?)').run('registration_limit', '1000');
 
   const corePages = [
     ['首页', 'home', '/', 1, '高校社团官方主页', ''],

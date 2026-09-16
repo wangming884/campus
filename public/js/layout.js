@@ -147,9 +147,9 @@ function renderSharedFooter() {
       <div class="footer-grid">
         <div class="footer-brand">
           <h4 id="footer-club-name">发明创新协会</h4>
-          <p id="footer-club-subtitle">青年科技与创新创业实践平台，凝聚青年智慧，点燃创新火花。深耕代码实践与前沿科技探索。</p>
+          <p id="footer-club-subtitle">青年科技与创新创业实践平台，凝聚青年智慧，点燃创新火花。深耕实践与前沿科技探索。</p>
           <div style="margin-top: 16px; font-size: 13px; color: #64748b;">
-            纳新周期：每年春季与秋季开学前三周 · 面向全校公开招新
+            纳新周期：每年秋季前四周 · 面向大一公开招新
           </div>
         </div>
 
@@ -176,7 +176,7 @@ function renderSharedFooter() {
       </div>
 
       <div class="footer-bottom">
-        &copy; 2026 高校学生社团官方版权所有 · 纯净高效现代化全栈管理系统
+        &copy;  发明创新协会官方网站
       </div>
     </div>
   `;
@@ -206,7 +206,7 @@ function initGlobalAuthModals() {
               <input type="password" class="form-control" id="login-password" placeholder="请输入密码" required>
             </div>
             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
-              超级管理员账号：superadmin@campus.club / Admin@123456
+              ⚠️ 登录后可访问个人中心、纳新通道、社团公告等功能。请确保使用注册时的邮箱与密码登录。
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">立即登录</button>
           </form>
@@ -254,6 +254,14 @@ function initGlobalAuthModals() {
             <div class="form-group">
               <label class="form-label">电子邮箱 (作为登录账号与邮件通知收件地址) <span class="required">*</span></label>
               <input type="email" class="form-control" id="reg-email" placeholder="常用有效邮箱" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">邮箱认证码 <span class="required">*</span></label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" class="form-control" id="reg-verification-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6位认证码" required>
+                <button type="button" class="btn btn-outline" id="btn-send-verification-code" onclick="sendRegistrationVerificationCode()" style="white-space: nowrap;">获取认证码</button>
+              </div>
             </div>
 
             <div class="form-group">
@@ -356,6 +364,43 @@ function applyPageTemplateConfig(config) {
 
 function openLoginModal() { openModal('modal-login'); }
 function openRegisterModal() { openModal('modal-register'); }
+let verificationCodeTimer = null;
+
+async function sendRegistrationVerificationCode() {
+  const emailInput = document.getElementById('reg-email');
+  const button = document.getElementById('btn-send-verification-code');
+  const email = emailInput.value.trim();
+  if (!emailInput.checkValidity()) {
+    emailInput.reportValidity();
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const res = await apiRequest('/auth/send-verification-code', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+    showToast(res.message, 'success');
+    let remaining = 60;
+    button.innerText = `${remaining}秒后重发`;
+    verificationCodeTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(verificationCodeTimer);
+        verificationCodeTimer = null;
+        button.disabled = false;
+        button.innerText = '获取认证码';
+      } else {
+        button.innerText = `${remaining}秒后重发`;
+      }
+    }, 1000);
+  } catch (error) {
+    button.disabled = false;
+    showToast(error.message, 'error');
+  }
+}
+
 function switchModal(fromId, toId) {
   closeModal(fromId);
   setTimeout(() => openModal(toId), 150);
@@ -396,7 +441,8 @@ async function handleGlobalRegister(e) {
     college: document.getElementById('reg-college').value,
     className: document.getElementById('reg-className').value,
     email: document.getElementById('reg-email').value,
-    password: document.getElementById('reg-password').value
+    password: document.getElementById('reg-password').value,
+    verificationCode: document.getElementById('reg-verification-code').value
   };
 
   try {

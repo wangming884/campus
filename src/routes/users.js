@@ -4,6 +4,50 @@ const bcrypt = require('bcryptjs');
 const { query, getOne, execute } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
+// 获取注册人数上限与当前人数
+router.get('/registration-limit', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const setting = await getOne('SELECT value FROM system_settings WHERE `key` = ?', ['registration_limit']);
+    const count = await getOne('SELECT COUNT(*) AS count FROM users');
+    const limit = Number.parseInt(setting && setting.value, 10);
+    res.json({
+      success: true,
+      data: {
+        limit: Number.isFinite(limit) && limit >= 0 ? limit : 1000,
+        current: Number(count && count.count) || 0
+      }
+    });
+  } catch (error) {
+    console.error('Fetch registration limit error:', error);
+    res.status(500).json({ success: false, message: '获取注册人数上限失败: ' + error.message });
+  }
+});
+
+// 更新注册人数上限
+router.put('/registration-limit', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const limit = Number(req.body.limit);
+    const count = await getOne('SELECT COUNT(*) AS count FROM users');
+    const current = Number(count && count.count) || 0;
+
+    if (!Number.isInteger(limit) || limit < 1) {
+      return res.status(400).json({ success: false, message: '注册人数上限必须是大于 0 的整数' });
+    }
+    if (limit < current) {
+      return res.status(400).json({
+        success: false,
+        message: `注册人数上限不能小于当前已注册人数（${current}人）`
+      });
+    }
+
+    await execute('REPLACE INTO system_settings (`key`, `value`) VALUES (?, ?)', ['registration_limit', String(limit)]);
+    res.json({ success: true, message: `注册人数上限已设置为 ${limit} 人`, data: { limit, current } });
+  } catch (error) {
+    console.error('Update registration limit error:', error);
+    res.status(500).json({ success: false, message: '保存注册人数上限失败: ' + error.message });
+  }
+});
+
 // 1. 获取用户列表 (管理员和超级管理员可查看)
 router.get('/', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
