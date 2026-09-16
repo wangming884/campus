@@ -804,13 +804,15 @@ async function loadUsers() {
 }
 
 async function loadRegistrationLimit() {
+  const currentElement = document.getElementById('registration-limit-current');
   try {
     const res = await apiRequest('/users/registration-limit');
     if (res.success && res.data) {
       document.getElementById('registration-limit-input').value = res.data.limit;
-      document.getElementById('registration-limit-current').innerText = `${res.data.current} 人`;
+      currentElement.innerText = `${res.data.current} 人`;
     }
   } catch (error) {
+    currentElement.innerText = '读取失败';
     showToast(error.message, 'error');
   }
 }
@@ -1862,7 +1864,7 @@ async function saveCategory(data) {
   try {
     const method = data.id ? 'PUT' : 'POST';
     const url = data.id ? `/categories/${data.id}` : '/categories';
-    const res = await apiRequest(url, { method, body: data });
+    const res = await apiRequest(url, { method, body: JSON.stringify(data) });
     if (res.success) {
       showToast(res.message, 'success');
       loadCategoriesAdmin();
@@ -1878,7 +1880,7 @@ async function toggleCategoryActive(catId) {
   try {
     const res = await apiRequest(`/categories/${catId}`, {
       method: 'PUT',
-      body: { is_active: c.is_active ? 0 : 1 }
+      body: JSON.stringify({ is_active: c.is_active ? 0 : 1 })
     });
     if (res.success) {
       showToast(res.message, 'success');

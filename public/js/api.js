@@ -74,6 +74,12 @@ async function syncCurrentUser() {
 async function apiRequest(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
   const token = getToken();
+  const requestBody = options.body && typeof options.body === 'object' &&
+    !(options.body instanceof FormData) &&
+    !(options.body instanceof Blob) &&
+    !(options.body instanceof URLSearchParams)
+    ? JSON.stringify(options.body)
+    : options.body;
 
   const headers = {
     ...(options.headers || {})
@@ -91,6 +97,7 @@ async function apiRequest(endpoint, options = {}) {
   try {
     const response = await fetch(url, {
       ...options,
+      body: requestBody,
       headers
     });
 

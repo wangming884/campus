@@ -7,8 +7,17 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 // 获取注册人数上限与当前人数
 router.get('/registration-limit', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
-    const setting = await getOne('SELECT value FROM system_settings WHERE `key` = ?', ['registration_limit']);
     const count = await getOne('SELECT COUNT(*) AS count FROM users');
+    let setting = null;
+
+    // 用户数是独立的核心数据。兼容旧云端数据库在初始化配置表失败的情况，
+    // 避免配置查询异常把当前用户数也变成无法读取。
+    try {
+      setting = await getOne('SELECT value FROM system_settings WHERE `key` = ?', ['registration_limit']);
+    } catch (settingError) {
+      console.warn('Read registration limit setting failed, using default:', settingError.message);
+    }
+
     const limit = Number.parseInt(setting && setting.value, 10);
     res.json({
       success: true,
@@ -306,7 +315,7 @@ router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), 
     await execute('DELETE FROM membership_applications WHERE user_id = ?', [targetUserId]);
     await execute('DELETE FROM member_messages WHERE user_id = ?', [targetUserId]);
     await execute('DELETE FROM activity_proposals WHERE user_id = ?', [targetUserId]);
-    await execute('DELETE FROM mail_logs WHERE id IN (SELECT id FROM mail_logs WHERE to_email = ?)', [targetUser.email]);
+    await execute('DELETE FROM mail_logs WHERE to_email = ?', [targetUser.email]);
 
     // 最后删除用户本身
     await execute('DELETE FROM users WHERE id = ?', [targetUserId]);
