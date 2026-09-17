@@ -223,7 +223,7 @@ async function deleteAboutDocument() {
     showToast(res.message, 'success');
     loadAboutDocumentInfo();
   } catch (error) {
-    showToast(error.message, 'error');
+    showToast(`SMTP 配置失败：${error.message || '服务器未返回具体原因'}`, 'error', 6000);
   }
 }
 
@@ -301,6 +301,66 @@ async function savePortalConfig() {
 }
 
 // ==================== 2. 入社申请审核中心 ====================
+
+// 导出报名申请花名册 (Excel / CSV)
+async function exportApplicationsExcel(format = 'excel') {
+  const status = document.getElementById('audit-filter-status')?.value || 'all';
+  const keyword = document.getElementById('audit-filter-keyword')?.value || '';
+  const token = getToken();
+
+  if (!token) {
+    showToast('登录凭据已失效，请重新登录', 'error');
+    return;
+  }
+
+  showToast(`正在生成 ${format.toUpperCase()} 报表，请稍候...`, 'info');
+
+  try {
+    const params = new URLSearchParams({
+      status,
+      keyword,
+      format,
+      token
+    });
+
+    const response = await fetch(`/api/applications/export?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(errJson.message || `导出失败 (${response.status})`);
+    }
+
+    // 提取文件名
+    let filename = `社团招新报名花名册.${format === 'csv' ? 'csv' : 'xls'}`;
+    const disposition = response.headers.get('Content-Disposition');
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename*?=(?:UTF-8'')?([^;]+)/i);
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1].replace(/["']/g, ''));
+      }
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+
+    showToast('🎉 花名册导出成功！', 'success');
+  } catch (err) {
+    console.error('Export error:', err);
+    showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
 async function loadApplications() {
   const tbody = document.getElementById('audit-table-body');
   const status = document.getElementById('audit-filter-status').value;
@@ -992,6 +1052,7 @@ async function loadMailSettingsAndLogs() {
         document.getElementById('mail-host').value = s.smtp_host || 'smtp.qq.com';
         document.getElementById('mail-port').value = s.smtp_port || '465';
         document.getElementById('mail-user').value = s.smtp_user || '';
+        document.getElementById('mail-from').value = s.smtp_from || s.smtp_user || '';
         document.getElementById('mail-sender-name').value = s.smtp_sender_name || '高校社团招新组';
         document.getElementById('mail-mock-mode').checked = s.mock_mode === 'true';
 
@@ -1011,6 +1072,7 @@ async function saveMailSettings() {
     smtp_port: document.getElementById('mail-port').value,
     smtp_secure: document.getElementById('mail-port').value === '465',
     smtp_user: document.getElementById('mail-user').value,
+    smtp_from: document.getElementById('mail-from').value,
     smtp_sender_name: document.getElementById('mail-sender-name').value,
     mock_mode: document.getElementById('mail-mock-mode').checked
   };
@@ -1028,7 +1090,7 @@ async function saveMailSettings() {
       showToast(res.message, 'success');
     }
   } catch (error) {
-    showToast(error.message, 'error');
+    showToast(`SMTP 配置失败：${error.message || '服务器未返回具体原因'}`, 'error', 6000);
   }
 }
 
@@ -1057,7 +1119,7 @@ async function sendTestEmail() {
 
 async function loadMailLogs() {
   const tbody = document.getElementById('mail-logs-table-body');
-  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px;">加载中...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 24px;">加载中...</td></tr>`;
 
   try {
     const res = await apiRequest('/mail/logs');
@@ -1065,7 +1127,7 @@ async function loadMailLogs() {
       cachedMailLogs = res.data || [];
 
       if (cachedMailLogs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 32px; color: var(--text-muted);">暂无发信记录</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 32px; color: var(--text-muted);">暂无发信记录</td></tr>`;
         return;
       }
 
@@ -1079,6 +1141,7 @@ async function loadMailLogs() {
 
         return `
           <tr>
+            <td><input type="checkbox" class="mail-log-checkbox" value="${log.id}" aria-label="选择发信日志 ${log.id}"></td>
             <td><strong>#${log.id}</strong></td>
             <td><strong>${escapeHtml(log.to_email)}</strong></td>
             <td>${escapeHtml(log.to_name || '-')}</td>
@@ -1093,7 +1156,27 @@ async function loadMailLogs() {
       }).join('');
     }
   } catch (error) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--danger);">加载失败: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--danger);">加载失败: ${error.message}</td></tr>`;
+  }
+}
+
+async function deleteSelectedMailLogs() {
+  const ids = [...document.querySelectorAll('.mail-log-checkbox:checked')].map(input => Number(input.value));
+  if (ids.length === 0) {
+    showToast('请先选择要删除的发信日志', 'warning');
+    return;
+  }
+  if (!confirm(`确定删除选中的 ${ids.length} 条发信日志吗？此操作不可撤回。`)) return;
+
+  try {
+    const res = await apiRequest('/mail/logs/batch', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids })
+    });
+    showToast(res.message, 'success');
+    loadMailLogs();
+  } catch (error) {
+    showToast(error.message, 'error');
   }
 }
 
@@ -1396,7 +1479,7 @@ async function loadProposalsAdmin() {
   const tbody = document.getElementById('proposals-admin-table-body');
   const statusSelect = document.getElementById('proposal-admin-filter-status');
   const status = statusSelect ? statusSelect.value : 'all';
-  tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 24px;">加载活动提案中...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 24px;">加载活动提案中...</td></tr>`;
 
   try {
     const res = await apiRequest(`/proposals?status=${status}`);
@@ -1404,7 +1487,7 @@ async function loadProposalsAdmin() {
       cachedAdminProposals = res.data;
 
       if (cachedAdminProposals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 32px; color: var(--text-muted);">暂无符合筛选条件的活动提案</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 32px; color: var(--text-muted);">暂无符合筛选条件的活动提案</td></tr>`;
         return;
       }
 
@@ -1418,6 +1501,7 @@ async function loadProposalsAdmin() {
 
         return `
           <tr>
+            <td><input type="checkbox" class="proposal-checkbox" value="${p.id}" aria-label="选择活动提案 ${p.id}"></td>
             <td><strong>#${p.id}</strong></td>
             <td style="font-weight: 700; color: #0f172a;">${escapeHtml(p.title)}</td>
             <td><span class="badge badge-admin">${escapeHtml(p.category)}</span></td>
@@ -1446,7 +1530,27 @@ async function loadProposalsAdmin() {
       }).join('');
     }
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: var(--danger);">加载失败: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: var(--danger);">加载失败: ${err.message}</td></tr>`;
+  }
+}
+
+async function deleteSelectedProposals() {
+  const ids = [...document.querySelectorAll('.proposal-checkbox:checked')].map(input => Number(input.value));
+  if (ids.length === 0) {
+    showToast('请先选择要删除的活动提案', 'warning');
+    return;
+  }
+  if (!confirm(`确定删除选中的 ${ids.length} 个活动提案及其投票历史吗？此操作不可撤回。`)) return;
+
+  try {
+    const res = await apiRequest('/proposals/batch', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids })
+    });
+    showToast(res.message, 'success');
+    loadProposalsAdmin();
+  } catch (error) {
+    showToast(error.message, 'error');
   }
 }
 

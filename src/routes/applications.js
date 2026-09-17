@@ -6,6 +6,8 @@ const fs = require('fs');
 const { query, getOne, execute, templatesDir, submissionsDir } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { sendAdmissionEmail, sendRejectionEmail } = require('../services/mailer');
+const { buildExcelXml, buildCsvWithBom } = require('../utils/excelExporter');
+const { applicationSubmitLimiter } = require('../middleware/rateLimiter');
 
 // 安全文件过滤器
 const safeFileFilter = (req, file, cb) => {
@@ -212,7 +214,7 @@ router.delete('/templates/:id', authenticateToken, requireRole(['admin', 'super_
 });
 
 // 7. 普通用户上传填写好的入社申请表并提交审核
-router.post('/submit', authenticateToken, uploadSubmission.single('file'), async (req, res) => {
+router.post('/submit', authenticateToken, applicationSubmitLimiter, uploadSubmission.single('file'), async (req, res) => {
   try {
     const user = req.user;
 
@@ -369,11 +371,91 @@ router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
 
     const contentType = mimeMap[ext] || 'application/octet-stream';
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', 'inline; filename="' + encodeURIComponent(app.submission_filename || '') + '"');
+    res.setHeader('Content-Disposition', 'attachment; filename=' + filename);
     fs.createReadStream(filePath).pipe(res);
   } catch (error) {
     console.error('Preview submission error:', error);
     res.status(500).send('预览失败');
+  }
+});
+
+
+// 8c. 导出报名申请花名册为 Excel / CSV 表格 (管理员/超管)
+router.get('/export', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const { status, keyword, format = 'excel' } = req.query;
+    let sql = 'SELECT * FROM membership_applications WHERE 1=1';
+    const params = [];
+
+    if (status && status !== 'all') {
+      sql += ' AND status = ?';
+      params.push(status);
+    }
+
+    if (keyword) {
+      sql += ' AND (name LIKE ? OR college LIKE ? OR className LIKE ? OR email LIKE ? OR qq LIKE ?)';
+      const k = "%" + keyword + "%";
+      params.push(k, k, k, k, k);
+    }
+
+    sql += ' ORDER BY id DESC';
+    const list = await query(sql, params);
+
+    const columns = [
+      { title: '申请编号', key: 'id', width: 70, type: 'Number' },
+      { title: '申请人姓名', key: 'name', width: 90 },
+      { title: '学院', key: 'college', width: 140 },
+      { title: '班级', key: 'className', width: 110 },
+      { title: 'QQ号码', key: 'qq', width: 110 },
+      { title: '电子邮箱', key: 'email', width: 160 },
+      { title: '意向部门', key: 'target_dept', width: 110 },
+      { 
+        title: '审核状态', 
+        key: 'status', 
+        width: 90,
+        format: (val) => {
+          if (val === 'approved') return '审核通过';
+          if (val === 'rejected') return '已驳回';
+          return '待审核';
+        }
+      },
+      { title: '个人自述/特长', key: 'statement', width: 240 },
+      { title: '提交附件文件名', key: 'submission_filename', width: 160 },
+      { 
+        title: '投递时间', 
+        key: 'created_at', 
+        width: 140,
+        format: (val) => val ? new Date(val).toLocaleString('zh-CN', { hour12: false }) : ''
+      },
+      { title: '审核人员', key: 'reviewer_name', width: 90 },
+      { title: '审核评语', key: 'review_notes', width: 160 },
+      { 
+        title: '审核时间', 
+        key: 'reviewed_at', 
+        width: 140,
+        format: (val) => val ? new Date(val).toLocaleString('zh-CN', { hour12: false }) : ''
+      }
+    ];
+
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const isCsv = format.toLowerCase() === 'csv';
+
+    if (isCsv) {
+      const csvContent = buildCsvWithBom(columns, list);
+      const filename = encodeURIComponent("社团招新报名花名册_" + timestamp + ".csv");
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=' + filename);
+      return res.send(csvContent);
+    }
+
+    const excelXml = buildExcelXml(columns, list, '社团招新报名花名册');
+    const filename = encodeURIComponent("社团招新报名花名册_" + timestamp + ".xls");
+    res.setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=' + filename);
+    res.send(excelXml);
+  } catch (error) {
+    console.error('Export applications error:', error);
+    res.status(500).json({ success: false, message: '导出报名数据失败: ' + error.message });
   }
 });
 

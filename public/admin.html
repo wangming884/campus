@@ -320,6 +320,14 @@
                   <input type="text" class="form-control" id="audit-filter-keyword" placeholder="搜索姓名/学院/班级/邮箱..." style="width: 220px;" onkeyup="if(event.key==='Enter') loadApplications()">
                   <button class="btn btn-outline" onclick="loadApplications()">筛选</button>
                 </div>
+                <div class="toolbar-right" style="display: flex; gap: 8px;">
+                  <button class="btn btn-success" onclick="exportApplicationsExcel('excel')" style="display: inline-flex; align-items: center; gap: 6px;" title="按当前筛选条件导出为标准 Excel 报表">
+                    <span>📥</span> 导出报名花名册 (Excel)
+                  </button>
+                  <button class="btn btn-outline" onclick="exportApplicationsExcel('csv')" style="padding: 0 12px;" title="导出为通用 CSV 表格">
+                    CSV
+                  </button>
+                </div>
               </div>
             </div>
             <div class="card-body" style="padding: 0;">
@@ -503,6 +511,7 @@
                     <option value="rejected">决议暂不举办</option>
                   </select>
                   <button class="btn btn-outline" onclick="loadProposalsAdmin()">刷新</button>
+                  <button class="btn btn-danger" onclick="deleteSelectedProposals()">🗑️ 批量删除</button>
                 </div>
               </div>
             </div>
@@ -511,6 +520,7 @@
                 <table class="data-table">
                   <thead>
                     <tr>
+                      <th style="width: 42px;"><input type="checkbox" aria-label="选择全部活动提案" onclick="document.querySelectorAll('.proposal-checkbox').forEach(c => c.checked = this.checked)"></th>
                       <th style="width: 60px;">ID</th>
                       <th>活动名称</th>
                       <th>类别</th>
@@ -737,7 +747,7 @@
             </div>
             <div class="card-body">
               <div class="alert alert-info">
-                📮 <strong>发信机制：</strong>当管理员审核通过入社申请时，系统将通过此 SMTP 服务自动向申请人的注册邮箱发送录取通知与入社指引。若暂未配置真实授权码，系统将<strong>自动开启模拟发信信箱</strong>，并在下方的发信日志中完整归档邮件内容，绝不丢失任何通知。
+                📮 <strong>发信机制：</strong>当管理员审核通过入社申请时，系统将通过此 SMTP 服务自动向申请人的注册邮箱发送录取通知与入社指引。只有勾选下方的<strong>模拟信箱模式</strong>时才会跳过外部 SMTP；真实发信模式下请填写 SMTP 授权码或密码。
               </div>
 
               <div class="form-grid-2">
@@ -767,6 +777,13 @@
                   <label class="form-label">发件人显示名称 (Sender Name)</label>
                   <input type="text" class="form-control" id="mail-sender-name" placeholder="如：发明创新协会招新组">
                 </div>
+                <div class="form-group">
+                  <label class="form-label">发件邮箱地址 (From)</label>
+                  <input type="email" class="form-control" id="mail-from" placeholder="必须是 Resend 已验证的邮箱地址">
+                </div>
+              </div>
+
+              <div class="form-grid-2">
                 <div class="form-group" style="display: flex; align-items: center; gap: 16px; margin-top: 28px;">
                   <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="mail-mock-mode">
@@ -795,6 +812,7 @@
                   ✍️ 编写自定义邮件
                 </button>
                 <button class="btn btn-outline btn-sm" onclick="loadMailLogs()">🔄 刷新日志</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteSelectedMailLogs()">🗑️ 批量删除日志</button>
               </div>
             </div>
             <div class="card-body" style="padding: 0;">
@@ -802,6 +820,7 @@
                 <table class="data-table">
                   <thead>
                     <tr>
+                      <th style="width: 42px;"><input type="checkbox" aria-label="选择全部发信日志" onclick="document.querySelectorAll('.mail-log-checkbox').forEach(c => c.checked = this.checked)"></th>
                       <th>ID</th>
                       <th>收件邮箱</th>
                       <th>收件人姓名</th>

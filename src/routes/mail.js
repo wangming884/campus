@@ -27,19 +27,67 @@ router.get('/settings', authenticateToken, requireRole(['super_admin']), async (
 // 2. 更新邮件配置 (仅超级管理员可设)
 router.put('/settings', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
-    const { smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_sender_name, mock_mode } = req.body;
+    const { smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_from, smtp_sender_name, mock_mode } = req.body;
+    const useMockMode = mock_mode === true || mock_mode === 'true';
+    const smtpHost = String(smtp_host || '').trim();
+    const smtpUser = String(smtp_user || '').trim();
+    const smtpFrom = String(smtp_from || smtp_user || '').trim();
+    const smtpPort = Number.parseInt(smtp_port || '465', 10);
+
+    if (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) {
+      return res.status(400).json({
+        success: false,
+        message: 'SMTP 配置失败：端口必须是 1 到 65535 之间的整数',
+        error: 'INVALID_SMTP_PORT'
+      });
+    }
+
+    if (!useMockMode) {
+      if (!smtpHost || !smtpUser || !smtpFrom) {
+        return res.status(400).json({
+          success: false,
+          message: 'SMTP 配置失败：真实 SMTP 模式必须填写服务器地址、SMTP 用户名和发件邮箱地址',
+          error: 'MISSING_SMTP_FIELDS'
+        });
+      }
+      if (smtpHost.toLowerCase().includes('resend') && smtpUser.toLowerCase() !== 'resend') {
+        return res.status(400).json({
+          success: false,
+          message: 'SMTP 配置失败：使用 Resend SMTP 时，SMTP 用户名必须填写 resend',
+          error: 'INVALID_RESEND_USERNAME'
+        });
+      }
+      if (smtpHost.toLowerCase().includes('resend') && smtpFrom.toLowerCase() === 'resend') {
+        return res.status(400).json({
+          success: false,
+          message: 'SMTP 配置失败：Resend 的发件邮箱地址必须是已验证域名邮箱，不能填写 resend',
+          error: 'INVALID_RESEND_FROM'
+        });
+      }
+      if (smtp_pass === undefined || String(smtp_pass).trim() === '') {
+        const existing = await getMailSettings();
+        if (!String(existing.smtp_pass || '').trim()) {
+          return res.status(400).json({
+            success: false,
+            message: 'SMTP 配置失败：真实 SMTP 模式必须填写授权码或 API Key',
+            error: 'MISSING_SMTP_PASSWORD'
+          });
+        }
+      }
+    }
 
     const updates = [
-      { key: 'smtp_host', val: smtp_host || 'smtp.qq.com' },
-      { key: 'smtp_port', val: String(smtp_port || '465') },
+      { key: 'smtp_host', val: smtpHost || 'smtp.qq.com' },
+      { key: 'smtp_port', val: String(smtpPort) },
       { key: 'smtp_secure', val: String(smtp_secure === true || smtp_secure === 'true') },
-      { key: 'smtp_user', val: smtp_user || '' },
+      { key: 'smtp_user', val: smtpUser },
+      { key: 'smtp_from', val: smtpFrom },
       { key: 'smtp_sender_name', val: smtp_sender_name || '高校学生社团招新组' },
-      { key: 'mock_mode', val: String(mock_mode === true || mock_mode === 'true') }
+      { key: 'mock_mode', val: String(useMockMode) }
     ];
 
     if (smtp_pass !== undefined && smtp_pass !== '') {
-      updates.push({ key: 'smtp_pass', val: smtp_pass });
+      updates.push({ key: 'smtp_pass', val: String(smtp_pass).trim() });
     }
 
     for (const item of updates) {
@@ -52,7 +100,11 @@ router.put('/settings', authenticateToken, requireRole(['super_admin']), async (
     });
   } catch (error) {
     console.error('Update mail settings error:', error);
-    res.status(500).json({ success: false, message: '保存邮件设置失败: ' + error.message });
+    res.status(500).json({
+      success: false,
+      message: 'SMTP 配置保存失败：' + error.message,
+      error: error.message
+    });
   }
 });
 
@@ -114,6 +166,25 @@ router.get('/logs', authenticateToken, requireRole(['admin', 'super_admin']), as
   } catch (error) {
     console.error('Fetch mail logs error:', error);
     res.status(500).json({ success: false, message: '获取邮件日志失败: ' + error.message });
+  }
+});
+
+// 批量删除系统发信日志（仅管理员和超级管理员）
+router.delete('/logs/batch', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids)
+      ? [...new Set(req.body.ids.map(Number).filter(Number.isInteger))]
+      : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, message: '请选择要删除的发信日志' });
+    }
+
+    const placeholders = ids.map(() => '?').join(', ');
+    const result = await execute(`DELETE FROM mail_logs WHERE id IN (${placeholders})`, ids);
+    res.json({ success: true, message: `已删除 ${result.changes} 条发信日志` });
+  } catch (error) {
+    console.error('Batch delete mail logs error:', error);
+    res.status(500).json({ success: false, message: '批量删除发信日志失败: ' + error.message });
   }
 });
 

@@ -238,4 +238,24 @@ router.post('/:id/decision', authenticateToken, requireRole(['admin', 'super_adm
   }
 });
 
+// 管理员批量删除活动提案及其投票历史
+router.delete('/batch', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids)
+      ? [...new Set(req.body.ids.map(Number).filter(Number.isInteger))]
+      : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, message: '请选择要删除的活动提案' });
+    }
+
+    const placeholders = ids.map(() => '?').join(', ');
+    await execute(`DELETE FROM proposal_votes WHERE proposal_id IN (${placeholders})`, ids);
+    const result = await execute(`DELETE FROM activity_proposals WHERE id IN (${placeholders})`, ids);
+    res.json({ success: true, message: `已删除 ${result.changes} 个活动提案及其投票历史` });
+  } catch (error) {
+    console.error('Batch delete proposals error:', error);
+    res.status(500).json({ success: false, message: '批量删除活动提案失败: ' + error.message });
+  }
+});
+
 module.exports = router;

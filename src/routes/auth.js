@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { getOne, execute } = require('../db/database');
 const { generateToken, authenticateToken } = require('../middleware/auth');
 const { sendEmail } = require('../services/mailer');
+const { verificationCodeIpLimiter, verificationCodeEmailLimiter, authLoginLimiter } = require('../middleware/rateLimiter');
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -14,15 +15,31 @@ function hashVerificationCode(code) {
   return crypto.createHash('sha256').update(code).digest('hex');
 }
 
+function formatDatabaseDate(date) {
+  const pad = n => String(n).padStart(2, '0');
+  const Y = date.getFullYear();
+  const M = pad(date.getMonth() + 1);
+  const D = pad(date.getDate());
+  const h = pad(date.getHours());
+  const m = pad(date.getMinutes());
+  const s = pad(date.getSeconds());
+  return `${Y}-${M}-${D} ${h}:${m}:${s}`;
+}
+
 function parseDatabaseDate(value) {
   if (!value) return NaN;
   if (value instanceof Date) return value.getTime();
-  const normalized = String(value).replace(' ', 'T');
-  return Date.parse(`${normalized}Z`);
+  if (typeof value === 'number') return value;
+  const str = String(value).trim();
+  if (str.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(str)) {
+    return Date.parse(str);
+  }
+  const time = new Date(str.replace('T', ' ')).getTime();
+  return Number.isFinite(time) ? time : NaN;
 }
 
 // 发送注册邮箱认证码
-router.post('/send-verification-code', async (req, res) => {
+router.post('/send-verification-code', verificationCodeIpLimiter, verificationCodeEmailLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -45,7 +62,7 @@ router.post('/send-verification-code', async (req, res) => {
     const code = String(crypto.randomInt(100000, 1000000));
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
-    const formatDate = date => date.toISOString().slice(0, 19).replace('T', ' ');
+    const formatDate = date => formatDatabaseDate(date);
     await execute('REPLACE INTO email_verification_codes (email, code_hash, expires_at, sent_at) VALUES (?, ?, ?, ?)', [
       email,
       hashVerificationCode(code),
@@ -165,14 +182,14 @@ router.post('/register', async (req, res) => {
 });
 
 // 登录接口
-router.post('/login', async (req, res) => {
+router.post('/login', authLoginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ success: false, message: '请输入邮箱和密码' });
     }
 
-    const user = await getOne('SELECT * FROM users WHERE email = ?', [email.trim()]);
+    const user = await getOne('SELECT * FROM users WHERE email = ?', [normalizeEmail(email)]);
     if (!user) {
       return res.status(401).json({ success: false, message: '账号或密码错误' });
     }

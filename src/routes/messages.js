@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { query, getOne, execute } = require('../db/database');
 const { authenticateToken, requireRole, optionalAuth } = require('../middleware/auth');
+const { messagePostLimiter } = require('../middleware/rateLimiter');
 
 // 1. 获取留言列表 (全员/成员可见，置顶优先，最新靠前)
 router.get('/', optionalAuth, async (req, res) => {
@@ -31,7 +32,7 @@ router.get('/', optionalAuth, async (req, res) => {
 });
 
 // 2. 发布社团成员留言 (仅限 社团成员、管理员、超级管理员)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, messagePostLimiter, async (req, res) => {
   try {
     const user = req.user;
 

@@ -12,9 +12,13 @@ async function getMailSettings() {
 // 邮件发送服务
 async function sendEmail({ to, toName, subject, html, text }) {
   const settings = await getMailSettings();
-  const isMock = settings.mock_mode === 'true' || !settings.smtp_pass;
+  const isMock = settings.mock_mode === 'true';
   const senderName = settings.smtp_sender_name || '高校学生社团招新组';
-  const fromAddress = `"${senderName}" <${settings.smtp_user || 'club-notice@campus.edu'}>`;
+  const smtpHost = String(settings.smtp_host || '').trim();
+  const smtpUser = String(settings.smtp_user || '').trim();
+  const smtpPass = String(settings.smtp_pass || '').trim();
+  const fromEmail = String(settings.smtp_from || smtpUser || 'club-notice@campus.edu').trim();
+  const fromAddress = `"${senderName}" <${fromEmail}>`;
 
   // 记录到数据库发信日志
   const insertLog = async (status, errorMsg = null) => {
@@ -43,15 +47,32 @@ async function sendEmail({ to, toName, subject, html, text }) {
 
   // 真实 SMTP 发信
   try {
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      const missing = [
+        !smtpHost && 'SMTP服务器地址',
+        !smtpUser && '发信邮箱账号',
+        !smtpPass && '授权码/密码'
+      ].filter(Boolean).join('、');
+      throw new Error(`真实SMTP模式缺少配置：${missing}`);
+    }
+
+    const port = Number.parseInt(settings.smtp_port || '465', 10);
+    const secure = settings.smtp_secure === 'true' || port === 465;
     const transporter = nodemailer.createTransport({
-      host: settings.smtp_host || 'smtp.qq.com',
-      port: parseInt(settings.smtp_port || '465'),
-      secure: settings.smtp_secure === 'true',
+      host: smtpHost,
+      port,
+      secure,
+      requireTLS: !secure,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
       auth: {
-        user: settings.smtp_user,
-        pass: settings.smtp_pass
+        user: smtpUser,
+        pass: smtpPass
       }
     });
+
+    await transporter.verify();
 
     const info = await transporter.sendMail({
       from: fromAddress,

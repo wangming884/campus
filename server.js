@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const { generalApiLimiter } = require('./src/middleware/rateLimiter');
 const path = require('path');
 const { initDatabase, cleanupReviewedSubmissions } = require('./src/db/database');
 
@@ -28,6 +29,9 @@ app.use(cookieParser());
 
 // 静态资源托管
 app.use(express.static(path.join(__dirname, 'public')));
+
+// 全局 API 接口防刷限流中间件 (单 IP 窗口限制)
+app.use('/api', generalApiLimiter);
 
 // API 路由注册
 app.use('/api/auth', authRoutes);

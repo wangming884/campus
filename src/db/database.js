@@ -488,6 +488,7 @@ async function seedMySQLData() {
     { key: 'smtp_port', value: '465' },
     { key: 'smtp_secure', value: 'true' },
     { key: 'smtp_user', value: 'youth_geek_club@qq.com' },
+    { key: 'smtp_from', value: 'youth_geek_club@qq.com' },
     { key: 'smtp_pass', value: '' },
     { key: 'smtp_sender_name', value: '发明创新协会招新组' },
     { key: 'mock_mode', value: 'true' }
@@ -960,9 +961,20 @@ function sqliteExecute(sql, params = []) {
   };
 }
 
+function formatLocalDateTime(date) {
+  const pad = n => String(n).padStart(2, '0');
+  const Y = date.getFullYear();
+  const M = pad(date.getMonth() + 1);
+  const D = pad(date.getDate());
+  const h = pad(date.getHours());
+  const m = pad(date.getMinutes());
+  const s = pad(date.getSeconds());
+  return `${Y}-${M}-${D} ${h}:${m}:${s}`;
+}
+
 async function cleanupReviewedSubmissions() {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const cutoffValue = cutoff.toISOString().slice(0, 19).replace('T', ' ');
+  const cutoffValue = formatLocalDateTime(cutoff);
   const expired = await query(`
     SELECT id, submission_filepath, submission_filename
     FROM membership_applications
