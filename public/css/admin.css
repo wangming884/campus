@@ -513,3 +513,101 @@
     transition: opacity 0.3s ease;
   }
 }
+/* =========================================================
+   🛡️ 2026 管理后台高阶沉浸式质感打磨 (Admin Console Luxury)
+   ========================================================= */
+
+/* 侧边栏深邃科技蓝黑渐变 */
+.admin-sidebar {
+  background: linear-gradient(180deg, #090e1a 0%, #0f172a 60%, #111827 100%) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-header {
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar-user-card {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+/* 导航项悬停与激活态增强 */
+.sidebar-nav .nav-item {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+}
+
+.sidebar-nav .nav-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+  transform: translateX(3px);
+}
+
+.sidebar-nav .nav-item.active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.25) 0%, rgba(124, 58, 237, 0.12) 100%) !important;
+  color: #ffffff !important;
+  border-left: 3.5px solid var(--primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+}
+
+.sidebar-nav .nav-item.active .nav-item-icon {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+}
+
+/* 统计小卡片浮雕感 */
+.stat-mini-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.stat-mini-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.09), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+.stat-mini-num {
+  letter-spacing: -0.5px;
+}
+
+/* 工具栏美化 */
+.table-toolbar {
+  background: #ffffff;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.btn-success {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+.btn-success:hover {
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  transform: translateY(-1.5px);
+}
+
+/* 后台审核表格操作列与详情弹窗 */
+.review-applicant-summary-box {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+/* 侧边栏用户信息姓名与身份徽章居中对称 */
+.sidebar-user-card .user-info-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}

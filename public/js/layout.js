@@ -82,8 +82,8 @@ function renderSharedNav() {
                 <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
                   ${escapeHtml(user.name ? user.name.slice(0, 1) : 'U')}
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
-                  <span style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">${escapeHtml(user.name)}</span>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25; gap: 3px;">
+                  <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); text-align: center; width: 100%;">${escapeHtml(user.name)}</span>
                   ${getRoleBadge(user.role)}
                 </div>
               </a>

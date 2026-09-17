@@ -427,3 +427,56 @@
     grid-template-columns: 1fr;
   }
 }
+/* =========================================================
+   🌟 2026 个人中心与官方社员凭证奢华质感打磨 (Profile VIP)
+   ========================================================= */
+
+/* 官方社员卡片尊贵高阶外观 */
+.member-cert-hero {
+  background: linear-gradient(135deg, #022c22 0%, #064e3b 40%, #065f46 75%, #047857 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.45) !important;
+  box-shadow: 
+    0 20px 40px -8px rgba(6, 78, 59, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 0 0 1px rgba(16, 185, 129, 0.2) !important;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.member-cert-hero:hover {
+  transform: translateY(-4px) scale(1.008) !important;
+  box-shadow: 
+    0 28px 50px -10px rgba(6, 78, 59, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.4) inset !important;
+  border-color: rgba(110, 231, 183, 0.7) !important;
+}
+
+.member-cert-hero::after {
+  color: rgba(255, 255, 255, 0.06) !important;
+  letter-spacing: 4px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* 芯片全息微光感 */
+.cert-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #ca8a04 100%);
+  color: #713f12;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(202, 138, 4, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+/* 个人中心侧边栏激活态优化 */
+.profile-sidebar .nav-item.active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.12) 0%, rgba(124, 58, 237, 0.06) 100%) !important;
+  color: var(--primary) !important;
+  border-left: 3.5px solid var(--primary);
+  font-weight: 700;
+}
