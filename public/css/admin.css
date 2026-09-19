@@ -592,6 +592,16 @@ html, body {
 
 /* 移动端与平板响应式自适应适配体系 (Admin Responsive System) */
 @media (max-width: 900px) {
+  .card-header {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+
+  .card-header .table-toolbar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .mobile-menu-toggle {
     display: inline-flex;
   }
@@ -1001,4 +1011,10 @@ html, body {
     height: 58vh;
     min-height: 260px;
   }
+}
+
+/* 管理后台触控性能与自适应支持 */
+button, .btn, a, input, select, textarea, [onclick] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }

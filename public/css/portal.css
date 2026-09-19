@@ -1230,7 +1230,504 @@
 }
 
 @media (max-width: 360px) {
+  .drawer-auth-grid,
+  .drawer-auth-switch-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* =========================================================
+   📱 门户全站前台自动适配增强与导航认证美化 (Portal Adaptive Polish)
+   ========================================================= */
+
+/* 顶部导航弹性右群组与认证按钮 */
+.nav-right-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.nav-auth-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav-user-logged-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  padding: 2px 6px 2px 2px;
+  border-radius: var(--radius-full);
+  transition: var(--transition);
+}
+
+.nav-user-pill:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.nav-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.nav-user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+  gap: 2px;
+}
+
+.nav-user-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-logout-btn {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.nav-logout-btn:hover {
+  color: var(--danger);
+  border-color: #fca5a5;
+}
+
+.nav-btn-switch {
+  padding: 5px 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  background: #f8fafc;
+}
+.nav-btn-switch:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+
+.nav-btn-reg-mini {
+  padding: 5px 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.drawer-auth-switch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* 移动端全屏侧滑抽屉美化 */
+.drawer-auth-hero-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+}
+
+.drawer-user-info-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.drawer-user-avatar-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.drawer-user-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.drawer-user-display-name {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-user-quick-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.drawer-user-quick-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 6px 8px;
+  font-size: 12.5px;
+}
+
+.drawer-guest-intro {
+  margin-bottom: 4px;
+}
+
+.drawer-auth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.drawer-footer-note {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+/* 首页 Hero 区域登录状态指示条 */
+.hero-auth-bar {
+  margin-top: 24px;
+  max-width: 680px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-auth-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 18px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
+  transition: var(--transition);
+}
+
+.hero-auth-inner.logged-out {
+  border-color: #bfdbfe;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(239, 246, 255, 0.95) 100%);
+}
+
+.hero-auth-inner.logged-in {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 253, 244, 0.95) 100%);
+}
+
+.hero-auth-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #334155;
+  min-width: 0;
+}
+
+.hero-auth-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hero-auth-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
+}
+
+/* 响应式微调与各级屏幕适配 */
+@media (max-width: 900px) {
+  .nav-desktop-menu {
+    display: none !important;
+  }
+  .nav-btn-desktop,
+  .nav-btn-switch,
+  .nav-btn-reg-mini {
+    display: none !important;
+  }
+  .nav-logout-text {
+    display: none !important;
+  }
+  .nav-right-cluster {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .portal-header {
+    height: 62px;
+  }
+  .nav-wrapper {
+    height: 62px;
+  }
+  .hero-section {
+    padding: clamp(32px, 6vw, 60px) 0;
+  }
+  .hero-title {
+    font-size: clamp(26px, 5.5vw, 42px) !important;
+    line-height: 1.25 !important;
+  }
+  .hero-subtitle {
+    font-size: clamp(14px, 2vw, 16.5px) !important;
+  }
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .hero-auth-inner {
+    flex-direction: column;
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    text-align: center;
+    gap: 8px;
+  }
+  .hero-auth-text {
+    justify-content: center;
+    font-size: 13px;
+  }
+  .hero-auth-btns {
+    width: 100%;
+    justify-content: center;
+  }
+  .hero-auth-btns .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-auth-buttons {
+    gap: 6px;
+  }
+  .nav-btn-login,
+  .nav-btn-register {
+    padding: 5px 10px !important;
+    font-size: 12.5px !important;
+  }
+  .brand-logo {
+    gap: 8px;
+    font-size: 16px;
+  }
+  .brand-icon {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 18px !important;
+  }
+  .brand-logo span {
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-right-cluster {
+    gap: 4px;
+  }
+  .nav-user-text {
+    display: none !important;
+  }
+  .nav-user-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+  .brand-logo span {
+    max-width: 105px !important;
+    font-size: 14.5px !important;
+  }
+  .nav-btn-login,
+  .nav-btn-register {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+  }
+  .mobile-toggle {
+    font-size: 22px !important;
+    padding: 3px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand-logo span {
+    max-width: 80px !important;
+    font-size: 13.5px !important;
+  }
+  .nav-btn-login,
+  .nav-btn-register {
+    padding: 3px 6px !important;
+    font-size: 11px !important;
+  }
   .drawer-auth-grid {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* 移动端与全端触控优化 */
+button, .btn, a, input, select, textarea, [onclick] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================
+   🌟 导航栏认证按钮与移动端抽屉响应式强化 (Auth Buttons & Responsive Polish)
+   保证各尺寸屏幕上登录与注册按钮均清晰可见、触控灵敏、不换行不遮挡
+   ========================================================= */
+
+.nav-right-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.nav-auth-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nav-btn-login,
+.nav-btn-register {
+  white-space: nowrap;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 26px;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  min-width: 42px;
+  min-height: 42px;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .nav-desktop-menu { display: none !important; }
+  .mobile-toggle { display: flex !important; align-items: center; justify-content: center; }
+  .nav-btn-desktop { display: none !important; }
+  .nav-right-cluster { gap: 8px; }
+  .nav-auth-buttons { gap: 6px; }
+  .nav-btn-login, .nav-btn-register {
+    padding: 6px 11px !important;
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-right-cluster { gap: 6px; }
+  .nav-auth-buttons { gap: 5px; }
+  .nav-btn-login, .nav-btn-register {
+    padding: 5px 9px !important;
+    font-size: 12.5px !important;
+  }
+  .mobile-toggle {
+    font-size: 24px !important;
+    padding: 4px !important;
+    min-width: 38px;
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-right-cluster { gap: 4px; }
+  .nav-auth-buttons { gap: 4px; }
+  .nav-btn-login, .nav-btn-register {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+  }
+  .brand-logo {
+    gap: 6px !important;
+  }
+  .brand-logo span {
+    font-size: 14px !important;
+    max-width: 100px !important;
+  }
+  .brand-icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-right-cluster { gap: 3px; }
+  .nav-auth-buttons { gap: 3px; }
+  .brand-logo span {
+    max-width: 76px !important;
+    font-size: 13px !important;
+  }
+  .brand-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+  .nav-btn-login, .nav-btn-register {
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+  }
+  .mobile-toggle {
+    font-size: 20px !important;
+    padding: 2px !important;
+    min-width: 32px;
+    min-height: 32px;
   }
 }

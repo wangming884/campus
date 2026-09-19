@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>高校社团综合运营与管理后台</title>
   <meta name="description" content="高校学生社团后台管理系统，包含官网首页可视化编辑、入社审核中心、申请表模板管理、通知发布、RBAC权限调度及邮件通知服务。">
   <link rel="stylesheet" href="/css/style.css">
@@ -36,7 +36,7 @@
             <div class="sidebar-brand-desc">综合运营与权限中枢</div>
           </div>
         </div>
-        <button class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="关闭侧边栏">&times;</button>
+        <button type="button" class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="关闭侧边栏">&times;</button>
       </div>
 
       <!-- 用户卡片 -->
@@ -91,7 +91,7 @@
           <span class="nav-item-icon">🏷️</span>
           <span>活动类别管理</span>
         </div>
-        <div class="nav-item" onclick="switchAdminTab('role-applications')" id="nav-tab-role-apps">
+        <div class="nav-item" onclick="switchAdminTab('role-applications')" id="nav-tab-role-applications">
           <span class="nav-item-icon">🔄</span>
           <span>角色升级申请</span>
         </div>
@@ -103,6 +103,12 @@
 
       <!-- 底部操作 -->
       <div class="sidebar-footer">
+        <a href="/?login=1" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent;">
+          🔑 切换/登录账号
+        </a>
+        <a href="/?register=1" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent;">
+          ✨ 快速注册新号
+        </a>
         <a href="/" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent;">
           🌐 返回官网主页
         </a>

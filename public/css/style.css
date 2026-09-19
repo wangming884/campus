@@ -347,7 +347,7 @@ textarea.form-control {
   background-color: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  z-index: 1200;
+  z-index: 2500 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1104,4 +1104,192 @@ body {
 
 .data-table tbody tr:hover {
   background-color: rgba(239, 246, 255, 0.7) !important;
+}
+
+
+/* =========================================================
+   📱 2026 全项目网页自动适配系统 (Universal Auto-Responsive System)
+   适用于所有屏幕：4K超宽屏、笔记本、iPad平板、折叠屏、全尺寸智能手机
+   ========================================================= */
+
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --screen-width: var(--vw, 100vw);
+  --screen-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* 视口全屏自适应修整 */
+html {
+  font-size: clamp(14px, 0.85rem + 0.35vw, 16px);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+}
+
+/* 流式容器自适应 */
+.container {
+  width: 100%;
+  max-width: 1260px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(12px, 3.5vw, 24px);
+  padding-right: clamp(12px, 3.5vw, 24px);
+}
+
+/* 全网页智能流式表格容器 */
+.table-responsive,
+.data-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.table-responsive table,
+.data-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* 触控友好微交互 */
+.is-touch-device .btn,
+.is-touch-device .nav-link,
+.is-touch-device .modal-close {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 模态弹窗视口智能伸缩 */
+.modal-overlay {
+  padding: clamp(8px, 2.5vw, 20px);
+}
+
+.modal-container {
+  width: 100%;
+  max-width: min(94vw, 560px);
+  max-height: min(92vh, calc(var(--vh, 1vh) * 92));
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 表单两列网格自适应 */
+.modal-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .modal-form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .form-control {
+    font-size: 16px !important; /* 彻底杜绝 iOS 聚焦放大视口 */
+  }
+
+  .modal-container {
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-header {
+    padding: 14px 18px;
+  }
+
+  .modal-body {
+    padding: 18px 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .btn-lg {
+    padding: 12px 18px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .btn {
+    padding: 7px 12px;
+    font-size: 12.5px;
+  }
+  
+  .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* 全局移动端与触控设备性能强化 (Touch & Gesture Polish) */
+button, .btn, a, input, select, textarea, [onclick] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================
+   📱 全网页通用自适应尺寸响应类 (Universal Adaptive Size Helpers)
+   ========================================================= */
+
+html.size-xs {
+  --container-pad: 12px;
+}
+html.size-sm {
+  --container-pad: 16px;
+}
+html.size-md {
+  --container-pad: 20px;
+}
+html.size-lg,
+html.size-xl {
+  --container-pad: 24px;
+}
+
+/* 杜绝移动端横向滚动穿透 */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 通用自适应数据表格滑动容器 */
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+/* 保证所有图片与媒体自适应容器 */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
 }

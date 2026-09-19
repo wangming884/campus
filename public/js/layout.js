@@ -19,9 +19,17 @@ let cachedNavItems = [
   { name: '联系方式', path: '/contact' }
 ];
 
-document.addEventListener('DOMContentLoaded', async () => {
+let isLayoutInitialized = false;
+async function initSharedLayout() {
+  if (isLayoutInitialized) return;
+  isLayoutInitialized = true;
+
+  if (typeof initAutoResponsiveEngine === 'function') {
+    initAutoResponsiveEngine();
+  }
   renderSharedNav();
   renderSharedFooter();
+  renderHeroAuthBar();
   initGlobalAuthModals();
   loadSharedConfig();
 
@@ -31,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await syncCurrentUser();
     } catch (e) {}
     renderSharedNav();
+    renderHeroAuthBar();
   }
 
   // 2. 动态拉取后台配置与新增的网页列表
@@ -45,7 +54,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       setTimeout(() => openRegisterModal(), 120);
     }
   } catch (e) {}
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSharedLayout);
+} else {
+  initSharedLayout();
+}
 
 // 动态拉取导航栏页面列表
 async function loadDynamicNav() {
@@ -73,18 +88,15 @@ function renderSharedNav() {
   const user = getCurrentUser();
   const isAdminOrSuper = user && ['admin', 'super_admin'].includes(user.role);
 
-  // 注意：此处仅渲染 header 内部导航元素。
-  // #mobile-drawer 必须脱离具有 backdrop-filter 的 header，直接挂载在 document.body 下，
-  // 否则在移动端/现代浏览器中，backdrop-filter 会创建包含块 (containing block)，
-  // 导致 fixed 抽屉被禁锢在 74px 的 header 容器内，移动端完全无法打开菜单。
+  // 注意：#mobile-drawer 挂载在 body 根节点下，避免 header backdrop-filter 创建包含块导致移动端抽屉被困
   navContainer.innerHTML = `
     <div class="container nav-wrapper">
-      <a href="/" class="brand-logo">
+      <a href="/" class="brand-logo" title="返回社团官网首页">
         <div class="brand-icon">⚡</div>
         <span id="nav-club-name">${escapeHtml(getStoredSiteName() || '发明创新协会')}</span>
       </a>
 
-      <nav>
+      <nav class="nav-desktop-menu">
         <ul class="nav-menu">
           ${navItems.map(item => `
             <li>
@@ -96,37 +108,42 @@ function renderSharedNav() {
         </ul>
       </nav>
 
-      <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="nav-right-cluster">
         <div class="nav-actions" id="user-nav-actions">
           ${user ? `
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <a href="/profile" style="display: flex; align-items: center; gap: 8px; text-decoration: none;" title="个人中心">
-                <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0;">
+            <div class="nav-user-logged-wrap">
+              <a href="/profile" class="nav-user-pill" title="进入个人工作台与凭证">
+                <div class="nav-user-avatar">
                   ${escapeHtml(user.name ? user.name.slice(0, 1) : 'U')}
                 </div>
-                <div class="nav-user-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25; gap: 3px;">
-                  <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); text-align: center; width: 100%;">${escapeHtml(user.name)}</span>
+                <div class="nav-user-text">
+                  <span class="nav-user-name">${escapeHtml(user.name)}</span>
                   ${getRoleBadge(user.role)}
                 </div>
               </a>
               <a href="/profile" class="btn btn-outline btn-sm nav-btn-desktop">个人中心</a>
               ${isAdminOrSuper ? `<a href="/admin" class="btn btn-primary btn-sm nav-btn-desktop">🛡️ 管理后台</a>` : ''}
-              <button class="btn btn-outline btn-sm nav-btn-desktop" onclick="logout()" title="安全退出" style="padding: 6px 10px;">🚪</button>
+              <button type="button" class="btn btn-outline btn-sm nav-btn-switch" onclick="openLoginModal()" title="登录其他账号或切换身份" style="font-weight: 600;">切换登录</button>
+              <button type="button" class="btn btn-primary btn-sm nav-btn-reg-mini" onclick="openRegisterModal()" title="注册新账号" style="font-weight: 600;">注册新号</button>
+              <button type="button" class="btn btn-outline btn-sm nav-logout-btn" onclick="logout()" title="安全退出系统" aria-label="安全退出">
+                <span>🚪</span><span class="nav-logout-text"> 退出</span>
+              </button>
             </div>
           ` : `
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="btn btn-outline btn-sm" onclick="openLoginModal()" style="font-weight: 600; padding: 6px 14px;">登录</button>
-              <button class="btn btn-primary btn-sm" onclick="openRegisterModal()" style="font-weight: 600; padding: 6px 14px;">注册</button>
+            <div class="nav-auth-buttons">
+              <button type="button" class="btn btn-outline btn-sm nav-btn-login" onclick="openLoginModal()" style="font-weight: 600;">登录</button>
+              <button type="button" class="btn btn-primary btn-sm nav-btn-register" onclick="openRegisterModal()" style="font-weight: 600;">注册加入</button>
             </div>
           `}
         </div>
 
-        <button class="mobile-toggle" onclick="toggleMobileDrawer()" title="打开菜单" aria-label="打开导航菜单">☰</button>
+        <button type="button" class="mobile-toggle" onclick="toggleMobileDrawer()" title="打开移动端导航菜单" aria-label="打开导航菜单">☰</button>
       </div>
     </div>
   `;
 
   renderSharedMobileDrawer();
+  renderHeroAuthBar();
 }
 
 // 独立挂载在 document.body 上的移动端全屏侧滑抽屉
@@ -147,7 +164,6 @@ function renderSharedMobileDrawer() {
     };
     document.body.appendChild(drawer);
   } else if (drawer.parentElement !== document.body) {
-    // 确保抽屉挂载在 body 根节点，脱离 header 的 backdrop-filter 包含块
     document.body.appendChild(drawer);
   }
 
@@ -158,8 +174,43 @@ function renderSharedMobileDrawer() {
           <span style="font-size: 18px;">📱</span>
           <span id="drawer-club-name">${escapeHtml(getStoredSiteName() || '发明创新协会')}</span>
         </div>
-        <button class="modal-close" onclick="closeMobileDrawer()" aria-label="关闭导航">&times;</button>
+        <button type="button" class="modal-close" onclick="closeMobileDrawer()" aria-label="关闭导航">&times;</button>
       </div>
+
+      <!-- 移动端顶部状态看板与登录/注册核心卡片 (杜绝移动端丢失按钮) -->
+      <div class="drawer-auth-hero-card">
+        ${user ? `
+          <div class="drawer-user-info-box">
+            <div class="drawer-user-avatar-circle">
+              ${escapeHtml(user.name ? user.name.slice(0, 1) : 'U')}
+            </div>
+            <div class="drawer-user-details">
+              <div class="drawer-user-display-name">${escapeHtml(user.name)}</div>
+              <div class="drawer-user-badge-wrap">${getRoleBadge(user.role)}</div>
+            </div>
+          </div>
+          <div class="drawer-user-quick-actions">
+            <a href="/profile" class="btn btn-outline btn-sm" onclick="closeMobileDrawer()">👤 个人工作台</a>
+            ${isAdminOrSuper ? `<a href="/admin" class="btn btn-primary btn-sm" onclick="closeMobileDrawer()">🛡️ 管理后台</a>` : ''}
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeMobileDrawer(); logout();" style="color: var(--danger);">🚪 退出</button>
+          </div>
+          <div class="drawer-auth-switch-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="closeMobileDrawer(); openLoginModal();" style="font-weight: 600; justify-content: center; padding: 9px 8px;">🔑 切换/账号登录</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeMobileDrawer(); openRegisterModal();" style="font-weight: 600; justify-content: center; background: #fff; padding: 9px 8px;">✨ 快速注册新号</button>
+          </div>
+        ` : `
+          <div class="drawer-guest-intro">
+            <div style="font-size: 14.5px; font-weight: 750; color: #0f172a; margin-bottom: 4px;">👋 欢迎新朋友！</div>
+            <div style="font-size: 12.5px; color: #64748b; margin-bottom: 12px;">登录即可提交入社申请、追踪进度并参与社团活动</div>
+          </div>
+          <div class="drawer-auth-grid">
+            <button type="button" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 11px 12px; font-weight: 600;" onclick="closeMobileDrawer(); openLoginModal();">🔑 账号登录</button>
+            <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; padding: 11px 12px; font-weight: 600; background: #fff;" onclick="closeMobileDrawer(); openRegisterModal();">✨ 快速注册加入</button>
+          </div>
+        `}
+      </div>
+
+      <div style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 4px;">页面导航</div>
       <ul class="drawer-links">
         ${navItems.map(item => `
           <li>
@@ -168,19 +219,17 @@ function renderSharedMobileDrawer() {
             </a>
           </li>
         `).join('')}
-        <li style="margin-top: 18px; border-top: 1px solid var(--border-light); padding-top: 16px;">
-          ${user ? `
-            <a href="/profile" onclick="closeMobileDrawer()">👤 个人中心 (${escapeHtml(user.name)})</a>
-            ${isAdminOrSuper ? `<a href="/admin" style="color: var(--primary);" onclick="closeMobileDrawer()">🛡️ 进入管理后台</a>` : ''}
-            <a href="javascript:void(0)" onclick="closeMobileDrawer(); logout();" style="color: var(--danger);">🚪 安全退出</a>
-          ` : `
-            <div class="drawer-auth-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <button class="btn btn-outline" style="width: 100%; justify-content: center; padding: 10px 12px; font-weight: 600;" onclick="closeMobileDrawer(); openLoginModal();">🔑 账号登录</button>
-              <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px 12px; font-weight: 600;" onclick="closeMobileDrawer(); openRegisterModal();">✨ 快速注册</button>
-            </div>
-          `}
-        </li>
       </ul>
+
+      <div class="drawer-footer-note">
+        ${user ? `
+          <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; color: var(--danger); border-color: #fecaca;" onclick="closeMobileDrawer(); logout();">🚪 安全退出当前登录</button>
+        ` : `
+          <div style="text-align: center; font-size: 12px; color: #94a3b8; padding-top: 10px;">
+            还没有社团账号？点击上方快速注册加入
+          </div>
+        `}
+      </div>
     </div>
   `;
 }
@@ -199,7 +248,16 @@ function closeMobileDrawer() {
   if (drawer) {
     drawer.classList.remove('active');
     drawer.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    drawer.style.pointerEvents = 'none';
+    setTimeout(() => {
+      if (drawer && !drawer.classList.contains('active')) {
+        drawer.style.pointerEvents = '';
+      }
+    }, 320);
+    const activeModal = document.querySelector('.modal-overlay.active');
+    if (!activeModal && document.body) {
+      document.body.style.overflow = '';
+    }
   }
 }
 
@@ -270,7 +328,7 @@ function initGlobalAuthModals() {
       <div class="modal-container">
         <div class="modal-header">
           <h3 class="modal-title">账号登录</h3>
-          <button class="modal-close" onclick="closeModal('modal-login')">&times;</button>
+          <button type="button" class="modal-close" onclick="closeModal('modal-login')">&times;</button>
         </div>
         <div class="modal-body">
           <form id="form-login" onsubmit="handleGlobalLogin(event)">
@@ -289,7 +347,7 @@ function initGlobalAuthModals() {
           </form>
         </div>
         <div class="modal-footer" style="justify-content: center; font-size: 13.5px;">
-          还没有账号？<a href="javascript:switchModal('modal-login', 'modal-register')" style="color: var(--primary); font-weight: 600;">点击快速注册</a>
+          还没有账号？<button type="button" class="btn-link" onclick="switchModal('modal-login', 'modal-register')" style="background: none; border: none; padding: 0; font: inherit; cursor: pointer; color: var(--primary); font-weight: 600; text-decoration: underline;">点击快速注册</button>
         </div>
       </div>
     </div>
@@ -299,7 +357,7 @@ function initGlobalAuthModals() {
       <div class="modal-container" style="max-width: 560px;">
         <div class="modal-header">
           <h3 class="modal-title">新用户注册 (成为普通用户)</h3>
-          <button class="modal-close" onclick="closeModal('modal-register')">&times;</button>
+          <button type="button" class="modal-close" onclick="closeModal('modal-register')">&times;</button>
         </div>
         <div class="modal-body">
           <div class="alert alert-info" style="margin-bottom: 16px;">
@@ -350,7 +408,7 @@ function initGlobalAuthModals() {
           </form>
         </div>
         <div class="modal-footer" style="justify-content: center; font-size: 13.5px;">
-          已有账号？<a href="javascript:switchModal('modal-register', 'modal-login')" style="color: var(--primary); font-weight: 600;">点击直接登录</a>
+          已有账号？<button type="button" class="btn-link" onclick="switchModal('modal-register', 'modal-login')" style="background: none; border: none; padding: 0; font: inherit; cursor: pointer; color: var(--primary); font-weight: 600; text-decoration: underline;">点击直接登录</button>
         </div>
       </div>
     </div>
@@ -448,13 +506,17 @@ function applyPageTemplateConfig(config) {
 function openLoginModal() {
   initGlobalAuthModals();
   closeMobileDrawer();
-  openModal('modal-login');
+  setTimeout(() => {
+    openModal('modal-login');
+  }, 35);
 }
 
 function openRegisterModal() {
   initGlobalAuthModals();
   closeMobileDrawer();
-  openModal('modal-register');
+  setTimeout(() => {
+    openModal('modal-register');
+  }, 35);
 }
 let verificationCodeTimer = null;
 
@@ -597,3 +659,143 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollAnimations();
   initBackToTop();
 });
+
+// =========================================================
+// 🌟 首页 Hero 区域动态登录/状态指示条 (Hero Auth Bar)
+// =========================================================
+function renderHeroAuthBar() {
+  const bar = document.getElementById('hero-auth-bar');
+  if (!bar) return;
+  const user = getCurrentUser();
+  const isAdminOrSuper = user && ['admin', 'super_admin'].includes(user.role);
+  if (user) {
+    bar.innerHTML = `
+      <div class="hero-auth-inner logged-in">
+        <div class="hero-auth-text">
+          <span class="hero-auth-dot"></span>
+          <span>当前已登录：<strong>${escapeHtml(user.name)}</strong></span>
+          ${getRoleBadge(user.role)}
+        </div>
+        <div class="hero-auth-btns">
+          <a href="/profile" class="btn btn-outline btn-sm">👤 个人工作台</a>
+          ${isAdminOrSuper ? `<a href="/admin" class="btn btn-primary btn-sm">🛡️ 管理后台</a>` : ''}
+          <button type="button" class="btn btn-primary btn-sm" onclick="openLoginModal()" title="登录其他账号">🔑 账号登录/切换</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="openRegisterModal()" style="background: #ffffff;" title="注册新用户">✨ 快速注册</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="logout()" title="安全退出当前账号" style="color: var(--danger);">🚪 退出</button>
+        </div>
+      </div>
+    `;
+  } else {
+    bar.innerHTML = `
+      <div class="hero-auth-inner logged-out">
+        <div class="hero-auth-text">
+          <span style="font-size: 17px;">💡</span>
+          <span>新同学尚未登录？注册普通用户仅需 30 秒，即可在线投递申请表：</span>
+        </div>
+        <div class="hero-auth-btns">
+          <button type="button" class="btn btn-primary btn-sm" onclick="openLoginModal()">🔑 账号登录</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="openRegisterModal()" style="background: #ffffff;">✨ 快速注册普通用户</button>
+        </div>
+      </div>
+    `;
+  }
+}
+window.renderHeroAuthBar = renderHeroAuthBar;
+
+// =========================================================
+// 📱 全网页智能自动适配网页大小引擎 (Auto Responsive Engine)
+// 动态捕获视口宽度与高度、安全区、触控模式，并为所有网页提供自适应支撑
+// =========================================================
+function initAutoResponsiveEngine() {
+  function applyResponsiveState() {
+    const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth || 375;
+    const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 667;
+    const root = document.documentElement;
+
+    // 1. 动态设定精准视口尺寸变量，攻克移动端 100vh 地址栏缩放 Bug
+    root.style.setProperty('--vw', `${width}px`);
+    root.style.setProperty('--vh', `${height * 0.01}px`);
+
+    // 2. 移除旧断点标记并赋予当前断点类
+    root.classList.remove('size-xs', 'size-sm', 'size-md', 'size-lg', 'size-xl');
+    if (width < 480) {
+      root.classList.add('size-xs'); // 紧凑小屏手机 (320px - 479px)
+    } else if (width < 768) {
+      root.classList.add('size-sm'); // 大屏手机 / 横屏手机 (480px - 767px)
+    } else if (width < 1024) {
+      root.classList.add('size-md'); // 平板电脑 / iPad (768px - 1023px)
+    } else if (width < 1440) {
+      root.classList.add('size-lg'); // 普通笔记本 / 桌面端 (1024px - 1439px)
+    } else {
+      root.classList.add('size-xl'); // 宽屏大显示器 / 2K / 4K (>= 1440px)
+    }
+
+    // 3. 设备触控感知
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    root.classList.toggle('is-touch-device', isTouch);
+    root.classList.toggle('is-pointer-device', !isTouch);
+
+    // 4. 视口宽度自动收起超出限制的移动端抽屉
+    if (width > 900) {
+      closeMobileDrawer();
+      if (typeof closeMobileSidebar === 'function') {
+        closeMobileSidebar();
+      }
+    }
+  }
+
+  // 5. 自动为网页内所有未经包装的 table 注入自适应横向滑槽，杜绝动态内容撑爆页面
+  function autoWrapTables() {
+    document.querySelectorAll('table').forEach(table => {
+      const parent = table.parentElement;
+      if (!parent) return;
+      if (!parent.classList.contains('table-responsive') && !parent.classList.contains('data-table-wrap')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-responsive';
+        parent.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      }
+    });
+  }
+
+  applyResponsiveState();
+  autoWrapTables();
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (resizeTimer) cancelAnimationFrame(resizeTimer);
+    resizeTimer = requestAnimationFrame(() => {
+      applyResponsiveState();
+    });
+  }, { passive: true });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(applyResponsiveState, 100);
+  });
+
+  // 监听动态内容挂载
+  if (typeof MutationObserver !== 'undefined' && document.body) {
+    const observer = new MutationObserver(() => {
+      autoWrapTables();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+}
+window.initAutoResponsiveEngine = initAutoResponsiveEngine;
+
+// 确保全站所有交互函数挂载在 window 全局对象上，彻底消除严格模式和内联事件报错
+if (typeof window !== 'undefined') {
+  window.openLoginModal = openLoginModal;
+  window.openRegisterModal = openRegisterModal;
+  window.handleGlobalLogin = handleGlobalLogin;
+  window.handleGlobalRegister = handleGlobalRegister;
+  window.switchModal = switchModal;
+  window.sendRegistrationVerificationCode = sendRegistrationVerificationCode;
+  window.openMobileDrawer = openMobileDrawer;
+  window.closeMobileDrawer = closeMobileDrawer;
+  window.toggleMobileDrawer = toggleMobileDrawer;
+  window.renderSharedNav = renderSharedNav;
+  window.renderSharedMobileDrawer = renderSharedMobileDrawer;
+  window.renderHeroAuthBar = renderHeroAuthBar;
+  window.initSharedLayout = initSharedLayout;
+}

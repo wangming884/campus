@@ -1037,3 +1037,11 @@ async function loadMemberNotices() {
     container.innerHTML = `<div class="alert alert-danger">加载通知失败</div>`;
   }
 }
+// 统一全局挂载工作台交互函数，确保移动端内联事件 100% 灵敏无报错
+if (typeof window !== 'undefined') {
+  window.toggleMobileSidebar = toggleMobileSidebar;
+  window.closeMobileSidebar = closeMobileSidebar;
+  window.switchProfileTab = switchProfileTab;
+  window.refreshProfileData = refreshProfileData;
+  if (typeof openNewProposalModal === 'function') window.openNewProposalModal = openNewProposalModal;
+}

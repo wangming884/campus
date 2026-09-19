@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>纳新通道与在线报名 - 高校学生社团官方门户</title>
   <meta name="description" content="下载官方社团入社申请表模板，在线投递申请材料并查看审核要求全流程。">
   <link rel="stylesheet" href="/css/style.css">
@@ -129,7 +129,36 @@
 </head>
 <body>
 
-  <header id="shared-header" class="portal-header"></header>
+    <!-- 共享顶部导航 -->
+  <header id="shared-header" class="portal-header">
+    <div class="container nav-wrapper">
+      <a href="/" class="brand-logo" title="返回社团官网首页">
+        <div class="brand-icon">⚡</div>
+        <span id="nav-club-name">发明创新协会</span>
+      </a>
+
+      <nav class="nav-desktop-menu">
+        <ul class="nav-menu">
+          <li><a href="/" class="nav-link ">首页</a></li>
+          <li><a href="/about" class="nav-link ">关于我们</a></li>
+          <li><a href="/recruitment" class="nav-link active">纳新通道</a></li>
+          <li><a href="/notices" class="nav-link ">通知公告</a></li>
+          <li><a href="/contact" class="nav-link ">联系方式</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-right-cluster">
+        <div class="nav-actions" id="user-nav-actions">
+          <div class="nav-auth-buttons">
+            <button type="button" class="btn btn-outline btn-sm nav-btn-login" onclick="openLoginModal()" style="font-weight: 600;">登录</button>
+            <button type="button" class="btn btn-primary btn-sm nav-btn-register" onclick="openRegisterModal()" style="font-weight: 600;">注册加入</button>
+          </div>
+        </div>
+
+        <button type="button" class="mobile-toggle" onclick="toggleMobileDrawer()" title="打开移动端导航菜单" aria-label="打开导航菜单">☰</button>
+      </div>
+    </div>
+  </header>
 
   <!-- 页面横幅 -->
   <div class="page-banner">
@@ -170,7 +199,7 @@
           </div>
 
           <!-- 未登录提示 -->
-          <div id="auth-prompt-box" style="display: none; background: #eff6ff; border: 1.5px dashed #93c5fd; border-radius: var(--radius-lg); padding: 32px 20px; text-align: center; margin-bottom: 24px;">
+          <div id="auth-prompt-box" style="display: block; background: #eff6ff; border: 1.5px dashed #93c5fd; border-radius: var(--radius-lg); padding: 32px 20px; text-align: center; margin-bottom: 24px;">
             <div style="font-size: 36px; margin-bottom: 10px;">👤</div>
             <h4 style="font-size: 17px; font-weight: 700; color: #1e40af; margin-bottom: 6px;">请先登录或注册成为【普通用户】</h4>
             <p style="font-size: 14px; color: #3b82f6; margin-bottom: 18px;">注册只需30秒（需填姓名、班级、学院、QQ、邮箱），注册后即可在此提交申请表。</p>

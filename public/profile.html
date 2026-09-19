@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>个人工作台与社员专区 - 高校学生创新社团</title>
   <meta name="description" content="高校学生社团个人中心与社员工作台，涵盖入社申请进度追踪、社员数字认证凭证、活动提案民主投票、社内留言交流与专享通知。">
   <link rel="stylesheet" href="/css/style.css">
@@ -37,7 +37,7 @@
             <div class="sidebar-brand-desc">社员服务与个人中枢</div>
           </div>
         </div>
-        <button class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="关闭侧边栏">&times;</button>
+        <button type="button" class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="关闭侧边栏">&times;</button>
       </div>
 
       <!-- 用户卡片 -->
@@ -84,6 +84,12 @@
             🛡️ 进入管理后台
           </a>
         </div>
+        <a href="/?login=1" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent; justify-content: center;">
+          🔑 切换/登录账号
+        </a>
+        <a href="/?register=1" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent; justify-content: center;">
+          ✨ 快速注册新号
+        </a>
         <a href="/" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155; background: transparent; justify-content: center;">
           🌐 返回官网主页
         </a>

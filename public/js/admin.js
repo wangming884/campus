@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2. 智能基于 URL Hash 恢复激活标签页，移动端刷新页面不丢失当前位置
   const hashTab = (window.location.hash || '').replace('#', '');
-  const validTabs = ['portal', 'pages', 'audit', 'templates', 'notices', 'proposals', 'messages', 'users', 'directions', 'categories', 'role-apps', 'mail'];
+  const validTabs = ['portal', 'pages', 'audit', 'templates', 'notices', 'proposals', 'messages', 'users', 'directions', 'categories', 'role-applications', 'role-apps', 'mail'];
   if (hashTab && validTabs.includes(hashTab)) {
     switchAdminTab(hashTab);
   } else {
@@ -108,15 +108,23 @@ window.closeMobileSidebar = closeMobileSidebar;
 // 2. 标签页切换
 function switchAdminTab(tabName) {
   closeMobileSidebar();
+  if (tabName === 'role-apps') tabName = 'role-applications';
   currentTab = tabName;
   if (window.history && window.history.replaceState) {
     window.history.replaceState(null, '', '#' + tabName);
   }
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  try {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  } catch (e) {
+    window.scrollTo(0, 0);
+  }
 
   // 更新侧边栏导航样式
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
-  const activeNavItem = document.getElementById(`nav-tab-${tabName}`);
+  let activeNavItem = document.getElementById(`nav-tab-${tabName}`);
+  if (!activeNavItem && tabName === 'role-applications') {
+    activeNavItem = document.getElementById('nav-tab-role-apps');
+  }
   if (activeNavItem) activeNavItem.classList.add('active');
 
   // 更新内容区域
@@ -2261,4 +2269,28 @@ function onRecipientSelectChanged() {
       </div>
     `;
   }
+}
+// 统一全局挂载管理后台核心交互函数，确保移动端内联事件 100% 灵敏
+if (typeof window !== 'undefined') {
+  window.switchAdminTab = switchAdminTab;
+  window.refreshCurrentTab = refreshCurrentTab;
+  window.savePortalConfig = savePortalConfig;
+  window.deleteAboutDocument = deleteAboutDocument;
+  window.openCreatePageModal = openCreatePageModal;
+  window.loadApplications = loadApplications;
+  window.exportApplicationsExcel = exportApplicationsExcel;
+  window.loadProposalsAdmin = loadProposalsAdmin;
+  window.deleteSelectedProposals = deleteSelectedProposals;
+  window.loadMessagesAdmin = loadMessagesAdmin;
+  window.saveRegistrationLimit = saveRegistrationLimit;
+  window.loadUsers = loadUsers;
+  window.openAddDirectionModal = openAddDirectionModal;
+  window.openAddCategoryModal = openAddCategoryModal;
+  window.saveMailSettings = saveMailSettings;
+  window.sendTestEmail = sendTestEmail;
+  window.openSendEmailModalAny = openSendEmailModalAny;
+  window.loadMailLogs = loadMailLogs;
+  window.deleteSelectedMailLogs = deleteSelectedMailLogs;
+  window.resetTemplateFields = resetTemplateFields;
+  window.onRecipientSelectChanged = onRecipientSelectChanged;
 }

@@ -561,3 +561,9 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* 个人工作台触控性能与自适应支持 */
+button, .btn, a, input, select, textarea, [onclick] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}

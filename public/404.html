@@ -2,13 +2,42 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>404 页面未找到 - 高校学生社团</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/portal.css">
 </head>
 <body style="background-color: #f8fafc;">
-  <header id="shared-header" class="portal-header"></header>
+    <!-- 共享顶部导航 -->
+  <header id="shared-header" class="portal-header">
+    <div class="container nav-wrapper">
+      <a href="/" class="brand-logo" title="返回社团官网首页">
+        <div class="brand-icon">⚡</div>
+        <span id="nav-club-name">发明创新协会</span>
+      </a>
+
+      <nav class="nav-desktop-menu">
+        <ul class="nav-menu">
+          <li><a href="/" class="nav-link ">首页</a></li>
+          <li><a href="/about" class="nav-link ">关于我们</a></li>
+          <li><a href="/recruitment" class="nav-link ">纳新通道</a></li>
+          <li><a href="/notices" class="nav-link ">通知公告</a></li>
+          <li><a href="/contact" class="nav-link ">联系方式</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-right-cluster">
+        <div class="nav-actions" id="user-nav-actions">
+          <div class="nav-auth-buttons">
+            <button type="button" class="btn btn-outline btn-sm nav-btn-login" onclick="openLoginModal()" style="font-weight: 600;">登录</button>
+            <button type="button" class="btn btn-primary btn-sm nav-btn-register" onclick="openRegisterModal()" style="font-weight: 600;">注册加入</button>
+          </div>
+        </div>
+
+        <button type="button" class="mobile-toggle" onclick="toggleMobileDrawer()" title="打开移动端导航菜单" aria-label="打开导航菜单">☰</button>
+      </div>
+    </div>
+  </header>
   <section style="padding: clamp(48px, 10vw, 80px) clamp(16px, 3vw, 24px); text-align: center;">
     <div class="container" style="max-width: 640px;">
       <div style="font-size: 64px; margin-bottom: 16px;">🔍</div>

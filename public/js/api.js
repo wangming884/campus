@@ -9,13 +9,20 @@ function getToken() {
   return localStorage.getItem('campus_token');
 }
 
-// 获取当前登录用户对象
+// 获取当前登录用户对象（严格要求 token 和 user 同时存在）
 function getCurrentUser() {
+  const token = getToken();
   const userStr = localStorage.getItem('campus_user');
-  if (!userStr) return null;
+  if (!token || !userStr) {
+    if (!token && userStr) {
+      try { localStorage.removeItem('campus_user'); } catch (e) {}
+    }
+    return null;
+  }
   try {
     return JSON.parse(userStr);
   } catch (e) {
+    try { localStorage.removeItem('campus_user'); } catch (err) {}
     return null;
   }
 }
@@ -54,17 +61,23 @@ if (typeof window !== 'undefined') {
 // 实时从服务端同步最新用户信息与角色，彻底杜绝权限变更后的缓存不同步问题
 async function syncCurrentUser() {
   const token = getToken();
-  if (!token) return null;
+  if (!token) {
+    try { localStorage.removeItem('campus_user'); } catch (e) {}
+    return null;
+  }
   try {
     const res = await apiRequest('/auth/me');
     if (res && res.success && res.user) {
-      setCurrentUser(res.user);
+      setCurrentUser(res.user, token);
       return res.user;
     }
   } catch (e) {
-    if (e.message && (e.message.includes('401') || e.message.includes('失效') || e.message.includes('登录'))) {
-      localStorage.removeItem('campus_token');
-      localStorage.removeItem('campus_user');
+    if (e.status === 401 || e.status === 403 || (e.message && (e.message.includes('401') || e.message.includes('403') || e.message.includes('失效') || e.message.includes('登录') || e.message.includes('Token') || e.message.includes('Unauthorized')))) {
+      try {
+        localStorage.removeItem('campus_token');
+        localStorage.removeItem('campus_user');
+      } catch (err) {}
+      return null;
     }
   }
   return getCurrentUser();
@@ -101,20 +114,28 @@ async function apiRequest(endpoint, options = {}) {
       headers
     });
 
-    // 针对 401 拦截
-    if (response.status === 401) {
+    // 针对 401 / 403 拦截
+    if (response.status === 401 || response.status === 403) {
       // 若处于需要认证的后台或个人中心页面，跳转回主页
-      if (window.location.pathname.includes('/admin') || window.location.pathname.includes('/profile')) {
+      if (typeof window !== 'undefined' && window.location && (window.location.pathname.includes('/admin') || window.location.pathname.includes('/profile'))) {
         localStorage.removeItem('campus_token');
         localStorage.removeItem('campus_user');
-        window.location.href = '/';
+        window.location.href = '/?login=1';
         return;
       }
     }
 
-    const data = await response.json();
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      data = { success: false, message: `请求失败 (${response.status})` };
+    }
     if (!response.ok) {
-      throw new Error(data.message || `请求失败 (${response.status})`);
+      const err = new Error(data.message || `请求失败 (${response.status})`);
+      err.status = response.status;
+      err.data = data;
+      throw err;
     }
     return data;
   } catch (error) {
@@ -161,30 +182,86 @@ function showToast(message, type = 'info', duration = 3500) {
   }, duration);
 }
 
-// 模态弹窗控制
+// =========================================================
+// 🪟 模态弹窗智能控制器 (Modal Controller & Ghost-Click Shield)
+// 彻底解决移动端触控穿透、合成点击误关、连续点击失效问题
+// =========================================================
+
+let lastModalOpenedTime = 0;
+let modalPointerDownTarget = null;
+
+// 记录按下时的原始目标，杜绝移动端 tap-through / ghost-click 穿透关闭背景
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', (e) => {
+    modalPointerDownTarget = e.target;
+  }, true);
+
+  document.addEventListener('touchstart', (e) => {
+    modalPointerDownTarget = e.target;
+  }, { passive: true, capture: true });
+
+  document.addEventListener('mousedown', (e) => {
+    modalPointerDownTarget = e.target;
+  }, true);
+
+  // 严格限定仅当在 modal-overlay 背景本身按下并抬起、且距离打开超过 320ms 时才关闭
+  document.addEventListener('click', (e) => {
+    if (Date.now() - lastModalOpenedTime < 320) {
+      return; // 屏蔽移动端刚展开弹窗瞬间产生的合成点击
+    }
+    if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
+      if (modalPointerDownTarget === e.target) {
+        closeModal(e.target);
+      }
+    }
+  });
+
+  // ESC 键快捷退出
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      const activeModals = document.querySelectorAll('.modal-overlay.active');
+      activeModals.forEach(m => closeModal(m));
+    }
+  });
+}
+
 function openModal(modalId) {
-  const modal = document.getElementById(modalId);
+  const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
   if (modal) {
+    lastModalOpenedTime = Date.now();
+    modalPointerDownTarget = null;
     modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    modal.setAttribute('aria-hidden', 'false');
+    if (document.body) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 智能聚焦弹窗内首个可用输入框
+    const firstInput = modal.querySelector('input:not([type="hidden"]), select, textarea, button.btn-primary');
+    if (firstInput && typeof firstInput.focus === 'function') {
+      setTimeout(() => {
+        try { firstInput.focus(); } catch (e) {}
+      }, 120);
+    }
   }
 }
 
 function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
+  const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
   if (modal) {
     modal.classList.remove('active');
-    document.body.style.overflow = '';
+    modal.setAttribute('aria-hidden', 'true');
+    const remainingActive = document.querySelectorAll('.modal-overlay.active');
+    if (remainingActive.length === 0 && document.body) {
+      document.body.style.overflow = '';
+    }
   }
 }
 
-// 点击模态背景关闭
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('modal-overlay')) {
-    e.target.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-});
+if (typeof window !== 'undefined') {
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+}
 
 // 格式化角色显示
 function getRoleBadge(role) {
@@ -241,4 +318,124 @@ function formatFileSize(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// =========================================================
+// 📱 全网页智能自动适配引擎 (Universal Auto Responsive Engine)
+// 动态计算视口像素级宽高、触控状态，自适应注入响应式滚动容器
+// =========================================================
+function initAutoResponsiveEngine() {
+  if (typeof window === 'undefined' || window.__autoResponsiveEngineInitialized) return;
+  window.__autoResponsiveEngineInitialized = true;
+
+  function applyResponsiveState() {
+    const width = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 0) || 375;
+    const height = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 0) || 667;
+    const root = document.documentElement;
+    if (!root) return;
+
+    // 1. 动态设定真实视口尺寸变量，解决移动端 100vh 各种浏览器地址栏遮挡及拉伸 Bug
+    root.style.setProperty('--vw', `${width}px`);
+    root.style.setProperty('--vh', `${height * 0.01}px`);
+
+    // 2. 移除旧断点标记并赋予当前断点类
+    root.classList.remove('size-xs', 'size-sm', 'size-md', 'size-lg', 'size-xl');
+    if (width < 480) {
+      root.classList.add('size-xs'); // 紧凑型小屏手机 (320px - 479px)
+    } else if (width < 768) {
+      root.classList.add('size-sm'); // 大屏手机 / 横屏手机 (480px - 767px)
+    } else if (width < 1024) {
+      root.classList.add('size-md'); // 平板电脑 / iPad (768px - 1023px)
+    } else if (width < 1440) {
+      root.classList.add('size-lg'); // 普通笔记本 / 桌面端 (1024px - 1439px)
+    } else {
+      root.classList.add('size-xl'); // 宽屏大显示器 / 2K / 4K (>= 1440px)
+    }
+
+    // 3. 设备触控感知
+    const isTouch = (typeof window !== 'undefined' && 'ontouchstart' in window) || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+    root.classList.toggle('is-touch-device', isTouch);
+    root.classList.toggle('is-pointer-device', !isTouch);
+
+    // 4. 视口变宽时自动收起移动端侧栏与抽屉
+    if (width > 900) {
+      if (typeof closeMobileDrawer === 'function') {
+        closeMobileDrawer();
+      }
+      if (typeof closeMobileSidebar === 'function') {
+        closeMobileSidebar();
+      }
+    }
+  }
+
+  // 5. 自动为网页内所有未经包装的 table 注入自适应横向滑槽，杜绝动态内容撑爆页面
+  function autoWrapTables() {
+    if (!document.body) return;
+    document.querySelectorAll('table').forEach(table => {
+      const parent = table.parentElement;
+      if (!parent) return;
+      if (!parent.classList.contains('table-responsive') && !parent.classList.contains('data-table-wrap')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-responsive';
+        parent.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      applyResponsiveState();
+      autoWrapTables();
+    });
+  } else {
+    applyResponsiveState();
+    autoWrapTables();
+  }
+
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (resizeTimer) cancelAnimationFrame(resizeTimer);
+    resizeTimer = requestAnimationFrame(applyResponsiveState);
+  }, { passive: true });
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(applyResponsiveState, 120);
+  });
+
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(() => {
+      autoWrapTables();
+    });
+    if (document.body) {
+      observer.observe(document.body, { childList: true, subtree: true });
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+      });
+    }
+  }
+}
+
+initAutoResponsiveEngine();
+window.initAutoResponsiveEngine = initAutoResponsiveEngine;
+
+// 统一全局挂载工具函数，杜绝不同页面作用域缺失与严格模式报错
+if (typeof window !== 'undefined') {
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.showToast = showToast;
+  window.apiRequest = apiRequest;
+  window.getToken = getToken;
+  window.getCurrentUser = getCurrentUser;
+  window.setCurrentUser = setCurrentUser;
+  window.logout = logout;
+  window.syncCurrentUser = syncCurrentUser;
+  window.escapeHtml = escapeHtml;
+  window.getRoleBadge = getRoleBadge;
+  window.getRoleName = getRoleName;
+  window.getStatusBadge = getStatusBadge;
+  window.formatDateTime = formatDateTime;
+  window.formatFileSize = formatFileSize;
+  window.initAutoResponsiveEngine = initAutoResponsiveEngine;
 }
