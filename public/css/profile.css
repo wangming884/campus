@@ -23,6 +23,7 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 998;
 }
 
@@ -296,9 +297,28 @@
   margin-top: 12px;
 }
 
+
+/* 响应式卡片网格系统 */
+.responsive-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .responsive-card-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
 /* 响应式调整 */
 @media (max-width: 900px) {
   .mobile-menu-toggle {
+    display: inline-flex;
+  }
+
+  .mobile-sidebar-close {
     display: inline-flex;
   }
 
@@ -306,13 +326,19 @@
     position: fixed;
     top: 0;
     bottom: 0;
-    left: -280px;
-    z-index: 999;
-    transition: transform 0.3s ease;
+    left: 0;
+    transform: translateX(-100%);
+    width: 280px;
+    max-width: 85vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 1100;
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .admin-sidebar.mobile-open {
-    transform: translateX(280px);
+    transform: translateX(0);
   }
 
   .sidebar-overlay.active {
@@ -320,15 +346,25 @@
   }
 
   .admin-topbar {
-    padding: 0 16px;
+    padding: 10px 16px;
+    height: auto;
+    min-height: 58px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .admin-content {
-    padding: 20px 16px;
+    padding: 18px 14px;
   }
 
   .stat-mini-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .app-timeline-steps {
@@ -479,4 +515,49 @@
   color: var(--primary) !important;
   border-left: 3.5px solid var(--primary);
   font-weight: 700;
+}
+
+
+@media (max-width: 640px) {
+  .stat-mini-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .topbar-title {
+    font-size: 15px;
+  }
+
+  .topbar-title div > div:last-child {
+    display: none;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .member-cert-hero {
+    padding: 20px 18px !important;
+  }
+
+  .cert-member-title {
+    font-size: 18px !important;
+  }
+
+  .cert-top-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+
+  .cert-meta-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+  }
+
+  #quick-actions-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

@@ -7,6 +7,7 @@ const { query, getOne, execute, templatesDir, submissionsDir } = require('../db/
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { sendAdmissionEmail, sendRejectionEmail } = require('../services/mailer');
 const { buildExcelXml, buildCsvWithBom } = require('../utils/excelExporter');
+const { isWordDocument, getExpectedPdfPath, convertWordToPdf, getConverterStatus } = require('../utils/docConverter');
 const { applicationSubmitLimiter } = require('../middleware/rateLimiter');
 
 // 安全文件过滤器
@@ -242,11 +243,27 @@ router.post('/submit', authenticateToken, applicationSubmitLimiter, uploadSubmis
     const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
     const { target_dept, statement } = req.body;
 
+    // 自动将 Word 申请表转换为 PDF，便于管理员在线审核
+    let submissionPdfPath = null;
+    if (isWordDocument(req.file.path)) {
+      try {
+        const conv = await convertWordToPdf(req.file.path);
+        if (conv.success && conv.pdfPath) {
+          submissionPdfPath = conv.pdfPath;
+          console.log(`[Applications] 申请人【${user.name}】提交的 Word 申请表已成功自动转为 PDF: ${submissionPdfPath}`);
+        } else {
+          console.log(`[Applications] 提交时自动转 PDF 跳过 (${conv.code}): ${conv.error}`);
+        }
+      } catch (convErr) {
+        console.warn('[Applications] 自动转换 PDF 异常 (可在预览时重试):', convErr.message);
+      }
+    }
+
     const result = await execute(`
       INSERT INTO membership_applications (
         user_id, name, college, className, qq, email, 
-        target_dept, statement, submission_filename, submission_filepath, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        target_dept, statement, submission_filename, submission_filepath, submission_pdf_path, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       user.id,
       user.name,
@@ -257,7 +274,8 @@ router.post('/submit', authenticateToken, applicationSubmitLimiter, uploadSubmis
       target_dept || '未指定',
       statement || '',
       originalName,
-      req.file.path
+      req.file.path,
+      submissionPdfPath
     ]);
 
     res.status(201).json({
@@ -308,7 +326,6 @@ router.get('/download-submission/:id', authenticateToken, async (req, res) => {
     // 路径兼容：数据库可能存有 Docker 容器内绝对路径，本地运行时应回退到当前 uploads 目录按文件名查找
     let filePath = app.submission_filepath;
     if (!filePath || !fs.existsSync(filePath)) {
-      // 磁盘文件名为「入社申请_用户名_时间戳.扩展名」，优先按磁盘名回退，其次按原始上传名
       const candidates = [
         app.submission_filepath ? path.join(submissionsDir, path.basename(app.submission_filepath)) : null,
         app.submission_filename ? path.join(submissionsDir, app.submission_filename) : null
@@ -316,18 +333,45 @@ router.get('/download-submission/:id', authenticateToken, async (req, res) => {
       filePath = candidates.find(p => fs.existsSync(p));
     }
 
+    // 支持指定下载已转换好的 PDF 版本
+    if (req.query.format === 'pdf' || req.query.pdf === '1') {
+      let pdfPath = app.submission_pdf_path;
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        if (filePath) {
+          const expected = getExpectedPdfPath(filePath);
+          if (fs.existsSync(expected)) pdfPath = expected;
+        }
+      }
+
+      if ((!pdfPath || !fs.existsSync(pdfPath)) && filePath && isWordDocument(filePath)) {
+        const conv = await convertWordToPdf(filePath);
+        if (conv.success && conv.pdfPath) {
+          pdfPath = conv.pdfPath;
+          try {
+            await execute('UPDATE membership_applications SET submission_pdf_path = ? WHERE id = ?', [pdfPath, app.id]);
+          } catch (e) {}
+        }
+      }
+
+      if (pdfPath && fs.existsSync(pdfPath)) {
+        const originalBase = path.basename(app.submission_filename || filePath, path.extname(app.submission_filename || filePath));
+        return res.download(pdfPath, `${originalBase}.pdf`);
+      }
+    }
+
     if (!filePath || !fs.existsSync(filePath)) {
       return res.status(404).send('申请表文件已丢失或不存在');
     }
 
-    res.download(filePath, app.submission_filename);
+    res.download(filePath, app.submission_filename || path.basename(filePath));
   } catch (error) {
     console.error('Download submission error:', error);
-    res.status(500).send('下载失败');
+    res.status(500).send('下载失败: ' + error.message);
   }
 });
 
 // 8b. 在线预览用户提交的申请表附件（不触发下载，直接在浏览器中展示）
+// 支持自动把 Word 文档 (.doc / .docx) 转换为 PDF 在线内联呈现
 router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
   try {
     const app = await getOne('SELECT * FROM membership_applications WHERE id = ?', [req.params.id]);
@@ -354,7 +398,99 @@ router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
       return res.status(404).send('申请表文件已丢失或不存在');
     }
 
-    const ext = path.extname(filePath).toLowerCase();
+    let fileToServe = filePath;
+    let serveMime = null;
+    let downloadFilename = app.submission_filename || path.basename(filePath);
+
+    // 若原文件为 Word 文档 (.doc / .docx)，自动提供或按需转换为 PDF 在线展示
+    if (isWordDocument(filePath)) {
+      let pdfPath = app.submission_pdf_path;
+      let validPdf = pdfPath && fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 0;
+
+      // 如果记录中没有，检查磁盘上是否已有同名 PDF
+      if (!validPdf) {
+        const expected = getExpectedPdfPath(filePath);
+        if (fs.existsSync(expected) && fs.statSync(expected).size > 0) {
+          pdfPath = expected;
+          validPdf = true;
+        }
+      }
+
+      // 尚未生成 PDF 时，触发实时自动转换
+      if (!validPdf) {
+        console.log(`[Applications] 申请表 #${app.id} 在线预览触发 Word 转 PDF: ${filePath}`);
+        const conv = await convertWordToPdf(filePath);
+        if (conv.success && conv.pdfPath && fs.existsSync(conv.pdfPath)) {
+          pdfPath = conv.pdfPath;
+          validPdf = true;
+          try {
+            await execute('UPDATE membership_applications SET submission_pdf_path = ? WHERE id = ?', [pdfPath, app.id]);
+          } catch (dbErr) {
+            console.warn('[Applications] 更新 submission_pdf_path 失败:', dbErr.message);
+          }
+        } else {
+          // 转换失败（如环境未安装 LibreOffice）
+          if (req.query.check === '1' || (req.headers.accept && req.headers.accept.includes('application/json'))) {
+            return res.status(422).json({
+              success: false,
+              code: conv.code || 'CONVERSION_FAILED',
+              message: conv.error || 'Word 文档转换为 PDF 失败'
+            });
+          }
+
+          // 输出友好引导页面
+          const tokenParam = encodeURIComponent(req.query.token || '');
+          const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word 文档在线转换提示</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 85vh; margin: 0; background: #f8fafc; color: #1e293b; }
+  .card { max-width: 540px; margin: 20px; padding: 32px 28px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; border: 1px solid #e2e8f0; }
+  .icon { font-size: 48px; margin-bottom: 12px; }
+  h2 { font-size: 18px; margin: 0 0 10px; color: #0f172a; }
+  p { font-size: 14px; line-height: 1.6; color: #64748b; margin: 8px 0; }
+  .alert { background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c; padding: 12px; border-radius: 8px; font-size: 13px; text-align: left; margin: 16px 0; }
+  .cmd { background: #0f172a; color: #38bdf8; padding: 10px 14px; border-radius: 6px; font-family: Consolas, Monaco, monospace; font-size: 12.5px; text-align: left; margin-top: 6px; word-break: break-all; }
+  .actions { margin-top: 24px; display: flex; gap: 10px; justify-content: center; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 6px; font-size: 13.5px; font-weight: 600; text-decoration: none; cursor: pointer; }
+  .btn-primary { background: #2563eb; color: #ffffff; border: none; }
+  .btn-primary:hover { background: #1d4ed8; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">📑</div>
+  <h2>Word 申请表在线预览提示</h2>
+  <p>该申请人提交的是 Word 文档（<strong>${downloadFilename}</strong>）。</p>
+  <div class="alert">
+    <strong>💡 提示：</strong>当前云端服务器尚未安装 LibreOffice 转换工具，暂时无法自动生成 PDF 预览。<br>
+    请点击下方按钮直接下载申请表原件，或在云服务器执行以下命令以启用自动转换：
+    <div class="cmd">sudo apt-get update &amp;&amp; sudo apt-get install -y libreoffice fonts-wqy-zenhei</div>
+  </div>
+  <div class="actions">
+    <a href="/api/applications/download-submission/${app.id}?token=${tokenParam}" class="btn btn-primary" download>
+      📥 下载原 Word 申请表查看
+    </a>
+  </div>
+</div>
+</body>
+</html>`;
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          return res.send(html);
+        }
+      }
+
+      if (validPdf && pdfPath) {
+        fileToServe = pdfPath;
+        serveMime = 'application/pdf';
+        downloadFilename = path.basename(filePath, path.extname(filePath)) + '.pdf';
+      }
+    }
+
+    const finalExt = path.extname(fileToServe).toLowerCase();
     const mimeMap = {
       '.pdf': 'application/pdf',
       '.png': 'image/png',
@@ -369,13 +505,67 @@ router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     };
 
-    const contentType = mimeMap[ext] || 'application/octet-stream';
+    const contentType = serveMime || mimeMap[finalExt] || 'application/octet-stream';
+    const safeEncodedName = encodeURIComponent(downloadFilename);
     res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', 'attachment; filename=' + filename);
-    fs.createReadStream(filePath).pipe(res);
+    res.setHeader('Content-Disposition', `inline; filename="${safeEncodedName}"; filename*=UTF-8''${safeEncodedName}`);
+    fs.createReadStream(fileToServe).pipe(res);
   } catch (error) {
     console.error('Preview submission error:', error);
-    res.status(500).send('预览失败');
+    res.status(500).send('预览处理失败: ' + error.message);
+  }
+});
+
+// 8c. 查看当前系统 Word 转 PDF 转换器状态 (管理员/超管)
+router.get('/converter-status', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const status = await getConverterStatus();
+    res.json({ success: true, data: status });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取转换器状态失败: ' + error.message });
+  }
+});
+
+// 8d. 手动触发将指定申请表 Word 文档转为 PDF (管理员/超管)
+router.post('/:id/convert-pdf', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
+  try {
+    const app = await getOne('SELECT * FROM membership_applications WHERE id = ?', [req.params.id]);
+    if (!app) {
+      return res.status(404).json({ success: false, message: '申请记录不存在' });
+    }
+
+    let filePath = app.submission_filepath;
+    if (!filePath || !fs.existsSync(filePath)) {
+      const candidates = [
+        app.submission_filepath ? path.join(submissionsDir, path.basename(app.submission_filepath)) : null,
+        app.submission_filename ? path.join(submissionsDir, app.submission_filename) : null
+      ].filter(Boolean);
+      filePath = candidates.find(p => fs.existsSync(p));
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: '原申请表文件已丢失' });
+    }
+
+    if (!isWordDocument(filePath)) {
+      return res.status(400).json({ success: false, message: '该申请表附件不是 Word 文档，无需转换' });
+    }
+
+    const conv = await convertWordToPdf(filePath);
+    if (!conv.success) {
+      return res.status(422).json({ success: false, message: conv.error, code: conv.code });
+    }
+
+    await execute('UPDATE membership_applications SET submission_pdf_path = ? WHERE id = ?', [conv.pdfPath, app.id]);
+
+    res.json({
+      success: true,
+      message: 'Word 申请表已成功转换为 PDF 格式',
+      pdfPath: conv.pdfPath,
+      cached: !!conv.cached
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '转换失败: ' + error.message });
   }
 });
 

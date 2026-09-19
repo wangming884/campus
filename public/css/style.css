@@ -58,7 +58,7 @@
   --transition-smooth: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-* {
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -85,7 +85,22 @@
   color: #1e40af;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
 body {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  position: relative;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   background-color: var(--bg-main);
   background-image: 
@@ -95,6 +110,34 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 媒体与嵌入元素全屏流式缩放 */
+img, svg, video, canvas, audio, iframe, embed, object {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 防止长文本或非换行字符撑爆移动端页面 */
+p, h1, h2, h3, h4, h5, h6, span, a, td, th, li, label {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+pre, code {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 全局响应式表格容器 */
+.table-responsive,
+.data-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 a {
@@ -303,7 +346,8 @@ textarea.form-control {
   inset: 0;
   background-color: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 1000;
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1200;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -450,11 +494,35 @@ textarea.form-control {
   color: var(--primary);
 }
 
-/* 通用容器 */
+/* 通用全自适应容器系统 (Fluid Adaptive Container System) */
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+  width: 100%;
+  max-width: 1240px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+@media (max-width: 992px) {
+  .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 
 /* ========== ✨ 精细化 UI 增强 ========== */
@@ -792,13 +860,89 @@ hr.fancy-divider {
   transform: scale(1.04);
 }
 
-/* 媒体查询优化 */
+/* 媒体查询与移动端/平板全自适应系统 (Universal Fluid Responsive System) */
+.modal-form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
 @media (max-width: 768px) {
+  .modal-form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
   .back-to-top {
     bottom: 20px;
     right: 16px;
     width: 40px; height: 40px;
     font-size: 16px;
+  }
+
+  /* 防止 iOS Safari 在聚焦输入框时强制放大视口，触控热区体验升级 */
+  .form-control,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 10px 8px;
+  }
+  .modal-container {
+    max-height: 96vh;
+    max-height: 96dvh;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-md);
+  }
+  .modal-header {
+    padding: 14px 16px;
+  }
+  .modal-body {
+    padding: 16px 14px;
+  }
+  .modal-footer {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .modal-footer .btn {
+    flex: 1 1 auto;
+  }
+  #toast-container {
+    top: 14px;
+    right: 14px;
+    left: 14px;
+  }
+  .toast {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-footer {
+    flex-direction: column;
+  }
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .btn {
+    padding: 8px 14px;
+    font-size: 13px;
   }
 }
 /* =========================================================

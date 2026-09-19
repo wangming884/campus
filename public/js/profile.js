@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   currentUser = getCurrentUser();
   if (!currentUser) {
     showToast('请先登录后再访问个人工作台', 'warning');
-    setTimeout(() => { window.location.href = '/'; }, 800);
+    setTimeout(() => { window.location.href = '/?login=1'; }, 800);
     return;
   }
 
@@ -166,8 +166,9 @@ function toggleMobileSidebar() {
   const sidebar = document.querySelector('.admin-sidebar');
   const overlay = document.querySelector('.sidebar-overlay');
   if (sidebar && overlay) {
-    sidebar.classList.toggle('mobile-open');
-    overlay.classList.toggle('active');
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
   }
 }
 
@@ -177,6 +178,7 @@ function closeMobileSidebar() {
   if (sidebar && overlay) {
     sidebar.classList.remove('mobile-open');
     overlay.classList.remove('active');
+    document.body.style.overflow = '';
   }
 }
 

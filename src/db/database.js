@@ -155,6 +155,7 @@ async function createMySQLTables() {
       statement TEXT,
       submission_filename VARCHAR(255),
       submission_filepath TEXT,
+      submission_pdf_path TEXT,
       status VARCHAR(50) DEFAULT 'pending',
       reviewer_id INT,
       reviewer_name VARCHAR(100),
@@ -327,6 +328,17 @@ async function createMySQLTables() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+  // 自动为历史版本增加 submission_pdf_path 字段
+  try {
+    const [cols] = await pool.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'membership_applications' AND COLUMN_NAME = 'submission_pdf_path'
+    `, [process.env.DB_NAME || 'campus_club']);
+    if (!cols || cols.length === 0) {
+      await pool.query('ALTER TABLE membership_applications ADD COLUMN submission_pdf_path TEXT AFTER submission_filepath;');
+      console.log('[MySQL] ✅ 已为 membership_applications 表自动补充 submission_pdf_path 字段');
+    }
+  } catch (err) {}
 }
 
 // 预置 MySQL 种子数据
@@ -745,6 +757,7 @@ function initFallbackSQLite() {
       statement TEXT,
       submission_filename TEXT,
       submission_filepath TEXT,
+      submission_pdf_path TEXT,
       status TEXT DEFAULT 'pending',
       reviewer_id INTEGER,
       reviewer_name TEXT,
@@ -875,6 +888,12 @@ function initFallbackSQLite() {
   `);
 
   try {
+    sqliteDb.exec('ALTER TABLE membership_applications ADD COLUMN submission_pdf_path TEXT');
+  } catch (error) {
+    if (!/duplicate column name|already exists/i.test(error.message)) throw error;
+  }
+
+  try {
     sqliteDb.exec('ALTER TABLE site_pages ADD COLUMN content_html TEXT');
   } catch (error) {
     if (!/duplicate column name|already exists/i.test(error.message)) throw error;
@@ -976,12 +995,12 @@ async function cleanupReviewedSubmissions() {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const cutoffValue = formatLocalDateTime(cutoff);
   const expired = await query(`
-    SELECT id, submission_filepath, submission_filename
+    SELECT id, submission_filepath, submission_filename, submission_pdf_path
     FROM membership_applications
     WHERE status IN ('approved', 'rejected')
       AND reviewed_at IS NOT NULL
       AND reviewed_at <= ?
-      AND (submission_filepath IS NOT NULL OR submission_filename IS NOT NULL)
+      AND (submission_filepath IS NOT NULL OR submission_filename IS NOT NULL OR submission_pdf_path IS NOT NULL)
   `, [cutoffValue]);
 
   let cleaned = 0;
@@ -989,7 +1008,9 @@ async function cleanupReviewedSubmissions() {
     const candidates = [
       application.submission_filepath,
       application.submission_filepath ? path.join(submissionsDir, path.basename(application.submission_filepath)) : null,
-      application.submission_filename ? path.join(submissionsDir, application.submission_filename) : null
+      application.submission_filename ? path.join(submissionsDir, application.submission_filename) : null,
+      application.submission_pdf_path,
+      application.submission_pdf_path ? path.join(submissionsDir, path.basename(application.submission_pdf_path)) : null
     ].filter(Boolean);
 
     for (const filePath of new Set(candidates)) {
@@ -1000,7 +1021,7 @@ async function cleanupReviewedSubmissions() {
 
     await execute(`
       UPDATE membership_applications
-      SET submission_filepath = NULL, submission_filename = NULL
+      SET submission_filepath = NULL, submission_filename = NULL, submission_pdf_path = NULL
       WHERE id = ?
     `, [application.id]);
     cleaned += 1;

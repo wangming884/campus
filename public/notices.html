@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>通知公告与活动沙龙 - 高校学生社团官方门户</title>
   <meta name="description" content="查看社团官方招新通知、前沿技术沙龙预告、大型比赛组队公告及社团成员专享内部规章。">
   <link rel="stylesheet" href="/css/style.css">
@@ -12,13 +12,23 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 18px;
+      gap: 16px;
       margin-bottom: 28px;
       flex-wrap: wrap;
     }
     .filter-pills {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
+    }
+    .notices-search-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #notice-search-input {
+      width: 260px;
+      max-width: 100%;
     }
     .filter-pill {
       padding: 8px 18px;
@@ -83,6 +93,64 @@
     .notice-card:hover::after {
       opacity: 1;
     }
+    .notice-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .notice-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-light);
+      padding-top: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    @media (max-width: 768px) {
+      .notices-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+      }
+      .filter-pills {
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      .notices-search-group {
+        width: 100%;
+      }
+      #notice-search-input {
+        width: 100% !important;
+        flex: 1;
+      }
+      .notice-card {
+        padding: 18px 16px;
+      }
+    }
+    @media (max-width: 640px) {
+      .notice-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
+      .notice-card-footer {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
+    }
+    @media (max-width: 360px) {
+      .filter-pill {
+        padding: 6px 12px;
+        font-size: 12.5px;
+      }
+      .notice-card {
+        padding: 14px 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -111,7 +179,7 @@
           <div class="filter-pill" onclick="setNoticeCategory('member', this)" data-cms-field="filterMember">🔒 社内成员专享</div>
         </div>
 
-        <div style="display: flex; gap: 8px;">
+        <div class="notices-search-group">
           <input type="text" class="form-control" id="notice-search-input" data-cms-field="searchPlaceholder" placeholder="搜索公告标题或标签..." style="width: 260px;" onkeyup="if(event.key==='Enter') loadNoticesList()">
           <button class="btn btn-outline" onclick="loadNoticesList()">🔍 搜索</button>
         </div>
@@ -194,7 +262,7 @@
 
           container.innerHTML = noticesData.map((n, i) => `
             <div class="notice-card" style="animation-delay: ${i * 0.08}s" onclick="openNoticeModalById(${n.id})">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px;">
+              <div class="notice-card-header">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                   <span class="badge ${n.category === 'member' ? 'badge-super' : 'badge-admin'}">
                     ${n.category === 'member' ? '🔒 社团成员专享' : '🌐 全校公开'}
@@ -209,7 +277,7 @@
                 ${escapeHtml(n.content)}
               </p>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 12px; font-size: 13px; color: var(--text-muted);">
+              <div class="notice-card-footer">
                 <span>发布人: <strong>${escapeHtml(n.author_name || '管理组')}</strong> · 浏览量: ${n.views || 0} 次</span>
                 <span style="color: var(--primary); font-weight: 700;">点击阅读全文 &rarr;</span>
               </div>

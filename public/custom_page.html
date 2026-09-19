@@ -2,20 +2,21 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>加载中... - 高校学生社团</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/portal.css">
   <style>
     .custom-page-hero {
       position: relative;
-      padding: 70px 20px 50px;
+      padding: clamp(36px, 6vw, 70px) clamp(16px, 3vw, 24px) clamp(28px, 5vw, 50px);
       text-align: center;
       background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
       border-bottom: 1px solid var(--border-light);
     }
     .custom-page-container {
       max-width: 960px;
+      width: 100%;
       margin: 40px auto 80px;
       padding: 0 20px;
     }
@@ -23,7 +24,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
-      padding: 44px;
+      padding: clamp(20px, 4vw, 44px);
       box-shadow: var(--shadow-md);
       line-height: 1.85;
       font-size: 16px;
@@ -37,6 +38,48 @@
       font-size: 13.5px;
       color: var(--text-muted);
       margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .custom-content-card img,
+    .custom-content-card video,
+    .custom-content-card svg,
+    .custom-content-card iframe {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+    }
+    .custom-content-card table {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      display: block;
+      -webkit-overflow-scrolling: touch;
+    }
+    .custom-content-card pre {
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    @media (max-width: 640px) {
+      .custom-content-card {
+        padding: 20px 16px;
+        font-size: 15px;
+      }
+      .custom-page-container {
+        padding: 0 14px;
+        margin: 24px auto 48px;
+      }
+      .custom-page-hero {
+        padding: 40px 14px 28px;
+      }
+      .custom-page-hero .hero-title {
+        font-size: clamp(24px, 6vw, 32px) !important;
+      }
+      .custom-meta-bar {
+        flex-direction: column;
+        gap: 6px;
+      }
     }
   </style>
 </head>

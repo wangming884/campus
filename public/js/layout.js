@@ -2,6 +2,15 @@
    全站通用布局与交互管理器 (Shared Layout & Navigation Manager)
    ========================================================= */
 
+// 获取本地缓存的社团/站点名称
+function getStoredSiteName() {
+  try {
+    return localStorage.getItem('campus_club_name') || '发明创新协会';
+  } catch (e) {
+    return '发明创新协会';
+  }
+}
+
 let cachedNavItems = [
   { name: '首页', path: '/' },
   { name: '关于我们', path: '/about' },
@@ -18,14 +27,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 1. 实时握手同步服务端最新用户角色信息 (解决权限提升缓存滞后 Bug)
   if (typeof syncCurrentUser === 'function') {
-    const freshUser = await syncCurrentUser();
-    if (freshUser) {
-      renderSharedNav();
-    }
+    try {
+      await syncCurrentUser();
+    } catch (e) {}
+    renderSharedNav();
   }
 
   // 2. 动态拉取后台配置与新增的网页列表
   await loadDynamicNav();
+
+  // 3. 支持通过 URL 参数或 Hash 自动拉起登录/注册弹窗 (如 /?login=1 或 #login)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === '1' || window.location.hash === '#login') {
+      setTimeout(() => openLoginModal(), 120);
+    } else if (urlParams.get('register') === '1' || window.location.hash === '#register') {
+      setTimeout(() => openRegisterModal(), 120);
+    }
+  } catch (e) {}
 });
 
 // 动态拉取导航栏页面列表
@@ -51,15 +70,18 @@ function renderSharedNav() {
   if (!navContainer) return;
 
   const navItems = cachedNavItems;
-
   const user = getCurrentUser();
   const isAdminOrSuper = user && ['admin', 'super_admin'].includes(user.role);
 
+  // 注意：此处仅渲染 header 内部导航元素。
+  // #mobile-drawer 必须脱离具有 backdrop-filter 的 header，直接挂载在 document.body 下，
+  // 否则在移动端/现代浏览器中，backdrop-filter 会创建包含块 (containing block)，
+  // 导致 fixed 抽屉被禁锢在 74px 的 header 容器内，移动端完全无法打开菜单。
   navContainer.innerHTML = `
     <div class="container nav-wrapper">
       <a href="/" class="brand-logo">
         <div class="brand-icon">⚡</div>
-        <span id="nav-club-name">发明创新协会</span>
+        <span id="nav-club-name">${escapeHtml(getStoredSiteName() || '发明创新协会')}</span>
       </a>
 
       <nav>
@@ -74,69 +96,124 @@ function renderSharedNav() {
         </ul>
       </nav>
 
-      <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <div class="nav-actions" id="user-nav-actions">
           ${user ? `
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <a href="/profile" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
-                <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="/profile" style="display: flex; align-items: center; gap: 8px; text-decoration: none;" title="个人中心">
+                <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0;">
                   ${escapeHtml(user.name ? user.name.slice(0, 1) : 'U')}
                 </div>
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25; gap: 3px;">
+                <div class="nav-user-text" style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.25; gap: 3px;">
                   <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); text-align: center; width: 100%;">${escapeHtml(user.name)}</span>
                   ${getRoleBadge(user.role)}
                 </div>
               </a>
-              <a href="/profile" class="btn btn-outline btn-sm">个人中心</a>
-              ${isAdminOrSuper ? `<a href="/admin" class="btn btn-primary btn-sm">🛡️ 管理后台</a>` : ''}
-              <button class="btn btn-outline btn-sm" onclick="logout()" title="安全退出" style="padding: 6px 10px;">🚪</button>
+              <a href="/profile" class="btn btn-outline btn-sm nav-btn-desktop">个人中心</a>
+              ${isAdminOrSuper ? `<a href="/admin" class="btn btn-primary btn-sm nav-btn-desktop">🛡️ 管理后台</a>` : ''}
+              <button class="btn btn-outline btn-sm nav-btn-desktop" onclick="logout()" title="安全退出" style="padding: 6px 10px;">🚪</button>
             </div>
           ` : `
-            <button class="btn btn-outline btn-sm" onclick="openLoginModal()">登录</button>
-            <button class="btn btn-primary btn-sm" onclick="openRegisterModal()">注册加入</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="btn btn-outline btn-sm" onclick="openLoginModal()" style="font-weight: 600; padding: 6px 14px;">登录</button>
+              <button class="btn btn-primary btn-sm" onclick="openRegisterModal()" style="font-weight: 600; padding: 6px 14px;">注册</button>
+            </div>
           `}
         </div>
 
-        <button class="mobile-toggle" onclick="toggleMobileDrawer()" title="打开菜单">☰</button>
+        <button class="mobile-toggle" onclick="toggleMobileDrawer()" title="打开菜单" aria-label="打开导航菜单">☰</button>
       </div>
     </div>
+  `;
 
-    <!-- 移动端侧滑抽屉 -->
-    <div class="mobile-drawer" id="mobile-drawer" onclick="if(event.target===this) toggleMobileDrawer()">
-      <div class="drawer-content">
-        <div class="drawer-header">
-          <div style="font-weight: 800; font-size: 16px;">导航菜单</div>
-          <button class="modal-close" onclick="toggleMobileDrawer()">&times;</button>
+  renderSharedMobileDrawer();
+}
+
+// 独立挂载在 document.body 上的移动端全屏侧滑抽屉
+function renderSharedMobileDrawer() {
+  const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+  const navItems = cachedNavItems;
+  const user = getCurrentUser();
+  const isAdminOrSuper = user && ['admin', 'super_admin'].includes(user.role);
+
+  let drawer = document.getElementById('mobile-drawer');
+  if (!drawer) {
+    drawer = document.createElement('div');
+    drawer.className = 'mobile-drawer';
+    drawer.id = 'mobile-drawer';
+    drawer.setAttribute('aria-hidden', 'true');
+    drawer.onclick = function(event) {
+      if (event.target === this) closeMobileDrawer();
+    };
+    document.body.appendChild(drawer);
+  } else if (drawer.parentElement !== document.body) {
+    // 确保抽屉挂载在 body 根节点，脱离 header 的 backdrop-filter 包含块
+    document.body.appendChild(drawer);
+  }
+
+  drawer.innerHTML = `
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <div style="font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📱</span>
+          <span id="drawer-club-name">${escapeHtml(getStoredSiteName() || '发明创新协会')}</span>
         </div>
-        <ul class="drawer-links">
-          ${navItems.map(item => `
-            <li>
-              <a href="${item.path}" class="${currentPath === item.path ? 'active' : ''}">
-                ${item.name}
-              </a>
-            </li>
-          `).join('')}
-          <li style="margin-top: 14px; border-top: 1px solid var(--border-light); padding-top: 14px;">
-            ${user ? `
-              <a href="/profile">👤 个人中心 (${escapeHtml(user.name)})</a>
-              ${isAdminOrSuper ? `<a href="/admin" style="color: var(--primary);">🛡️ 进入管理后台</a>` : ''}
-              <a href="javascript:logout()" style="color: var(--danger);">🚪 安全退出</a>
-            ` : `
-              <a href="javascript:openLoginModal()">🔑 账号登录</a>
-              <a href="javascript:openRegisterModal()" style="color: var(--primary);">✨ 快速注册加入</a>
-            `}
-          </li>
-        </ul>
+        <button class="modal-close" onclick="closeMobileDrawer()" aria-label="关闭导航">&times;</button>
       </div>
+      <ul class="drawer-links">
+        ${navItems.map(item => `
+          <li>
+            <a href="${item.path}" class="${currentPath === item.path ? 'active' : ''}" onclick="closeMobileDrawer()">
+              ${item.name}
+            </a>
+          </li>
+        `).join('')}
+        <li style="margin-top: 18px; border-top: 1px solid var(--border-light); padding-top: 16px;">
+          ${user ? `
+            <a href="/profile" onclick="closeMobileDrawer()">👤 个人中心 (${escapeHtml(user.name)})</a>
+            ${isAdminOrSuper ? `<a href="/admin" style="color: var(--primary);" onclick="closeMobileDrawer()">🛡️ 进入管理后台</a>` : ''}
+            <a href="javascript:void(0)" onclick="closeMobileDrawer(); logout();" style="color: var(--danger);">🚪 安全退出</a>
+          ` : `
+            <div class="drawer-auth-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button class="btn btn-outline" style="width: 100%; justify-content: center; padding: 10px 12px; font-weight: 600;" onclick="closeMobileDrawer(); openLoginModal();">🔑 账号登录</button>
+              <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px 12px; font-weight: 600;" onclick="closeMobileDrawer(); openRegisterModal();">✨ 快速注册</button>
+            </div>
+          `}
+        </li>
+      </ul>
     </div>
   `;
 }
 
-function toggleMobileDrawer() {
+function openMobileDrawer() {
   const drawer = document.getElementById('mobile-drawer');
-  if (drawer) drawer.classList.toggle('active');
+  if (drawer) {
+    drawer.classList.add('active');
+    drawer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
 }
 
+function closeMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  if (drawer) {
+    drawer.classList.remove('active');
+    drawer.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+}
+
+function toggleMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  if (drawer && drawer.classList.contains('active')) {
+    closeMobileDrawer();
+  } else {
+    openMobileDrawer();
+  }
+}
+window.openMobileDrawer = openMobileDrawer;
+window.closeMobileDrawer = closeMobileDrawer;
+window.toggleMobileDrawer = toggleMobileDrawer;
 // 统一渲染页脚
 function renderSharedFooter() {
   const footerContainer = document.getElementById('shared-footer');
@@ -229,7 +306,7 @@ function initGlobalAuthModals() {
             💡 注册成功后角色统一为【普通用户】。可在【纳新通道】下载申请表模板并提交，审核通过后即可升级为【社团成员】！
           </div>
           <form id="form-register" onsubmit="handleGlobalRegister(event)">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="modal-form-grid-2">
               <div class="form-group">
                 <label class="form-label">真实姓名 <span class="required">*</span></label>
                 <input type="text" class="form-control" id="reg-name" placeholder="真实姓名" required>
@@ -240,7 +317,7 @@ function initGlobalAuthModals() {
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="modal-form-grid-2">
               <div class="form-group">
                 <label class="form-label">所在学院 <span class="required">*</span></label>
                 <input type="text" class="form-control" id="reg-college" placeholder="如：计算机学院" required>
@@ -287,8 +364,14 @@ async function loadSharedConfig() {
     const res = await apiRequest('/portal/config');
     if (res.success && res.data) {
       const cfg = res.data;
+      if (cfg.club_name) {
+        try { localStorage.setItem('campus_club_name', cfg.club_name); } catch (e) {}
+      }
       if (document.getElementById('nav-club-name')) {
         document.getElementById('nav-club-name').innerText = cfg.club_name;
+      }
+      if (document.getElementById('drawer-club-name')) {
+        document.getElementById('drawer-club-name').innerText = cfg.club_name;
       }
       if (document.getElementById('footer-club-name')) {
         document.getElementById('footer-club-name').innerText = cfg.club_name;
@@ -362,8 +445,17 @@ function applyPageTemplateConfig(config) {
   });
 }
 
-function openLoginModal() { openModal('modal-login'); }
-function openRegisterModal() { openModal('modal-register'); }
+function openLoginModal() {
+  initGlobalAuthModals();
+  closeMobileDrawer();
+  openModal('modal-login');
+}
+
+function openRegisterModal() {
+  initGlobalAuthModals();
+  closeMobileDrawer();
+  openModal('modal-register');
+}
 let verificationCodeTimer = null;
 
 async function sendRegistrationVerificationCode() {

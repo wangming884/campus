@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>个人工作台与社员专区 - 高校学生创新社团</title>
   <meta name="description" content="高校学生社团个人中心与社员工作台，涵盖入社申请进度追踪、社员数字认证凭证、活动提案民主投票、社内留言交流与专享通知。">
   <link rel="stylesheet" href="/css/style.css">
@@ -30,11 +30,14 @@
     <!-- 左侧深色侧边栏导航 -->
     <aside class="admin-sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-brand-icon">🚀</div>
-        <div>
-          <div class="sidebar-brand-title">极客工作台</div>
-          <div class="sidebar-brand-desc">社员服务与个人中枢</div>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+          <div class="sidebar-brand-icon">🚀</div>
+          <div>
+            <div class="sidebar-brand-title">极客工作台</div>
+            <div class="sidebar-brand-desc">社员服务与个人中枢</div>
+          </div>
         </div>
+        <button class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="关闭侧边栏">&times;</button>
       </div>
 
       <!-- 用户卡片 -->
@@ -161,7 +164,7 @@
           <div id="overview-cert-slot"></div>
 
           <!-- 下方两列栅格：最新申请动态 + 极客快捷通道 -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+          <div class="responsive-card-grid">
             <!-- 申请动态速览 -->
             <div class="card">
               <div class="card-header">
@@ -237,7 +240,7 @@
 
         <!-- ==================== Tab 3: 个人资料设置 ==================== -->
         <div class="tab-pane" id="pane-profile">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+          <div class="responsive-card-grid">
             <div class="card">
               <div class="card-header">
                 <div class="card-title">👤 维护个人基本学籍与联系信息</div>
@@ -433,7 +436,7 @@
             <input type="text" class="form-control" id="prop-title" placeholder="如：《LLM 智能体架构与多模态实战工坊》" required>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="modal-form-grid-2">
             <div class="form-group">
               <label class="form-label">活动类别</label>
               <select class="form-control" id="prop-category"></select>
@@ -444,7 +447,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="modal-form-grid-2">
             <div class="form-group">
               <label class="form-label">拟定举办地点</label>
               <input type="text" class="form-control" id="prop-location" placeholder="如：活动中心302工坊 / 阶梯教室">

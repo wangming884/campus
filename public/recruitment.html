@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>纳新通道与在线报名 - 高校学生社团官方门户</title>
   <meta name="description" content="下载官方社团入社申请表模板，在线投递申请材料并查看审核要求全流程。">
   <link rel="stylesheet" href="/css/style.css">
@@ -85,7 +85,45 @@
       pointer-events: none;
     }
     @media (max-width: 900px) {
-      .recruitment-grid { grid-template-columns: 1fr; }
+      .recruitment-grid { grid-template-columns: 1fr; gap: 24px; }
+    }
+    @media (max-width: 640px) {
+      .download-banner {
+        padding: 20px 16px;
+        gap: 16px;
+      }
+      .download-banner h3 {
+        font-size: 18px !important;
+      }
+      .download-banner .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      .recruitment-form-card {
+        padding: 18px 14px !important;
+      }
+      #rec-target-dept {
+        font-size: 14px;
+        max-width: 100%;
+        text-overflow: ellipsis;
+      }
+      .faq-card {
+        padding: 14px 16px;
+      }
+    }
+    @media (max-width: 360px) {
+      .download-banner {
+        padding: 16px 12px;
+      }
+      .recruitment-form-card {
+        padding: 14px 10px !important;
+      }
+      .file-dropzone {
+        padding: 18px 10px;
+      }
+      .dropzone-icon {
+        font-size: 26px;
+      }
     }
   </style>
 </head>
@@ -122,7 +160,7 @@
       <!-- 表单与常见问答网格 -->
       <div class="recruitment-grid">
         <!-- 左列：在线投递表单卡片 -->
-        <div data-cms-section="showApplication" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
+        <div class="recruitment-form-card" data-cms-section="showApplication" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--border-light);">
             <div>
               <h3 style="font-size: 22px; font-weight: 800; color: #0f172a;" data-cms-field="applicationTitle">在线提交入社申请</h3>
@@ -136,7 +174,10 @@
             <div style="font-size: 36px; margin-bottom: 10px;">👤</div>
             <h4 style="font-size: 17px; font-weight: 700; color: #1e40af; margin-bottom: 6px;">请先登录或注册成为【普通用户】</h4>
             <p style="font-size: 14px; color: #3b82f6; margin-bottom: 18px;">注册只需30秒（需填姓名、班级、学院、QQ、邮箱），注册后即可在此提交申请表。</p>
-            <button class="btn btn-primary" onclick="openLoginModal()">立即登录 / 注册</button>
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-primary" onclick="openLoginModal()">🔑 立即登录</button>
+              <button type="button" class="btn btn-outline" onclick="openRegisterModal()" style="background: #ffffff;">✨ 快速注册</button>
+            </div>
           </div>
 
           <!-- 申请表单 -->

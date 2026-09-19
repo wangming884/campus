@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>高校社团综合运营与管理后台</title>
   <meta name="description" content="高校学生社团后台管理系统，包含官网首页可视化编辑、入社审核中心、申请表模板管理、通知发布、RBAC权限调度及邮件通知服务。">
   <link rel="stylesheet" href="/css/style.css">
@@ -23,14 +23,20 @@
 <body>
 
   <div class="admin-layout">
+    <!-- 移动端遮罩层 -->
+    <div class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
     <!-- 侧边栏导航 -->
     <aside class="admin-sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-brand-icon">⚡</div>
-        <div>
-          <div class="sidebar-brand-title" id="admin-club-title">社团管理后台</div>
-          <div class="sidebar-brand-desc">综合运营与权限中枢</div>
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+          <div class="sidebar-brand-icon">⚡</div>
+          <div>
+            <div class="sidebar-brand-title" id="admin-club-title">社团管理后台</div>
+            <div class="sidebar-brand-desc">综合运营与权限中枢</div>
+          </div>
         </div>
+        <button class="mobile-sidebar-close" onclick="closeMobileSidebar()" aria-label="关闭侧边栏">&times;</button>
       </div>
 
       <!-- 用户卡片 -->
@@ -109,8 +115,13 @@
     <!-- 主操作界面 -->
     <main class="admin-main">
       <header class="admin-topbar">
-        <div class="topbar-title" id="topbar-page-title">
-          <span>🎨 官网主页动态配置</span>
+        <div style="display: flex; align-items: center; min-width: 0;">
+          <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" title="打开菜单">
+            ☰
+          </button>
+          <div class="topbar-title" id="topbar-page-title">
+            <span>🎨 官网主页动态配置</span>
+          </div>
         </div>
 
         <div class="topbar-actions">
@@ -379,7 +390,7 @@
                   </div>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px; flex-wrap: wrap; gap: 12px;">
                   <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
                     <input type="checkbox" id="tpl-set-active" checked>
                     <strong>立即设为官网当前生效的默认下载模板</strong>
@@ -795,8 +806,8 @@
               <!-- 测试邮件发送 -->
               <div style="background: #f8fafc; border: 1px solid var(--border); padding: 18px; border-radius: var(--radius-md); margin-top: 20px;">
                 <div style="font-weight: 700; margin-bottom: 8px;">🧪 发信连通性即时测试</div>
-                <div style="display: flex; gap: 12px;">
-                  <input type="email" class="form-control" id="mail-test-to" placeholder="输入接收测试邮件的邮箱，如: test@qq.com" style="max-width: 380px;">
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <input type="email" class="form-control" id="mail-test-to" placeholder="输入接收测试邮件的邮箱，如: test@qq.com" style="max-width: 380px; flex: 1; min-width: 200px;">
                   <button class="btn btn-outline" onclick="sendTestEmail()">📨 发送测试邮件</button>
                 </div>
               </div>
@@ -807,7 +818,7 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">📫 系统发信日志与历史记录 (录取/驳回/测试)</div>
-              <div style="display: flex; gap: 10px;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn btn-primary btn-sm" onclick="openSendEmailModalAny()">
                   ✍️ 编写自定义邮件
                 </button>
@@ -858,7 +869,7 @@
         <form id="form-do-review" onsubmit="handleReviewSubmit(event)">
           <div class="form-group">
             <label class="form-label">审核操作决议 <span class="required">*</span></label>
-            <div style="display: flex; gap: 20px; margin-top: 8px;">
+            <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap;">
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border: 1.5px solid var(--success); border-radius: var(--radius-md); background: var(--success-light); font-weight: 700; color: var(--success-text);">
                 <input type="radio" name="review_action" value="approve" checked>
                 ✅ 审核通过 (批准入社)
@@ -878,7 +889,7 @@
             <textarea class="form-control" id="review-notes" rows="3" placeholder="例如：欢迎加入技术研发部！请准时参加本周五迎新沙龙。"></textarea>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
             <button type="button" class="btn btn-outline" onclick="closeModal('modal-review-app')">取消</button>
             <button type="submit" class="btn btn-primary" id="btn-submit-review">提交审核并发送邮件通知</button>
           </div>
@@ -889,16 +900,20 @@
 
   <!-- ==================== 在线预览申请表模态框 ==================== -->
   <div class="modal-overlay" id="modal-preview-submission">
-    <div class="modal-container" style="max-width: 900px; width: 95%;">
+    <div class="modal-container" style="max-width: 960px; width: 95%;">
       <div class="modal-header">
-        <h3 class="modal-title">📄 在线预览申请表</h3>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 13px; color: var(--text-muted);" id="preview-file-name"></span>
-          <a class="btn btn-outline btn-sm" id="preview-download-link" download>📥 下载</a>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 class="modal-title">📄 在线预览申请表</h3>
+          <span id="preview-format-badge" class="badge badge-admin" style="display:none; font-size: 11.5px;"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="font-size: 13px; color: var(--text-muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="preview-file-name"></span>
+          <a class="btn btn-outline btn-sm" id="preview-download-link" download>📥 下载原件</a>
+          <a class="btn btn-primary btn-sm" id="preview-download-pdf-link" style="display:none;" download>📄 下载PDF</a>
           <button class="modal-close" onclick="closeModal('modal-preview-submission')" style="position: static; font-size: 22px; line-height: 1; cursor: pointer; background: none; border: none; color: #64748b;">&times;</button>
         </div>
       </div>
-      <div class="modal-body" style="padding: 0; min-height: 55vh; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+      <div class="modal-body" style="padding: 0; min-height: 65vh; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
         <div id="preview-container" style="width: 100%; height: 100%;">
           <div style="text-align: center; padding: 40px; color: var(--text-muted);">
             <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
@@ -906,9 +921,9 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <div style="font-size: 12px; color: var(--text-muted);">
-          💡 PDF / 图片可直接在线查看；Word / Excel 文件请下载后在本地打开
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="font-size: 12px; color: var(--text-muted);" id="preview-footer-tip">
+          💡 支持 Word（.doc / .docx）与 PDF 自动在线预览；若为 Word 文档系统将自动转为 PDF 呈现
         </div>
         <button class="btn btn-outline" onclick="closeModal('modal-preview-submission')">关闭</button>
       </div>
@@ -1091,7 +1106,7 @@
             <textarea class="form-control" id="msg-reply-input" rows="4" placeholder="写下对该成员留言的官方回应、解决方案或解答..." required></textarea>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
             <button type="button" class="btn btn-outline" onclick="closeModal('modal-reply-message')">取消</button>
             <button type="submit" class="btn btn-primary" id="btn-submit-msg-reply">提交官方答复</button>
           </div>
@@ -1147,7 +1162,7 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
             <button type="button" class="btn btn-outline" onclick="closeModal('modal-dispatch-role')">取消</button>
             <button type="submit" class="btn btn-primary" id="btn-submit-dispatch-role">确认调度权限</button>
           </div>
@@ -1196,7 +1211,7 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
             <button type="button" class="btn btn-outline" onclick="closeModal('modal-send-email')">取消</button>
             <button type="submit" class="btn btn-primary" id="btn-submit-send-email">🚀 确认发送邮件</button>
           </div>

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>关于我们 - 高校学生社团官方门户</title>
   <meta name="description" content="了解社团历史沿革、愿景使命、导师团队、发展里程碑与历年丰硕竞赛科研荣誉。">
   <link rel="stylesheet" href="/css/style.css">
@@ -132,8 +132,58 @@
     .honor-card:hover::after {
       opacity: 1;
     }
-    @media(max-width: 768px) {
+        .about-intro-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 44px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 50px;
+    }
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 60px;
+    }
+    @media (max-width: 1024px) {
+      .honor-grid { grid-template-columns: repeat(2, 1fr); }
+      .values-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    }
+    #about-document-download {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .about-intro-card { padding: 20px 16px; margin-bottom: 28px; }
+      .values-grid { grid-template-columns: 1fr; gap: 14px; margin-bottom: 32px; }
       .honor-grid { grid-template-columns: 1fr; }
+      .history-timeline { padding-left: 22px; }
+      .history-timeline::before { left: 4px; }
+      .node-dot { left: -22px; }
+      .node-content { padding: 16px 14px; }
+      #about-document-download {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      #about-document-download .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      #about-document-download-meta {
+        margin-left: 0 !important;
+      }
+    }
+    @media (max-width: 360px) {
+      .about-intro-card { padding: 16px 12px; }
+      .value-card { padding: 18px 14px; }
+      .honor-card { padding: 16px 12px; }
+      .history-timeline { padding-left: 18px; }
+      .node-dot { left: -18px; width: 14px; height: 14px; }
+      .node-content { padding: 14px 12px; }
     }
   </style>
 </head>
@@ -155,7 +205,7 @@
   <!-- 社团简介主体 -->
   <section class="section">
     <div class="container">
-      <div style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 44px; box-shadow: var(--shadow-md); margin-bottom: 50px;">
+      <div class="about-intro-card">
         <h2 style="font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 18px;" id="about-page-title" data-cms-field="introTitle">
           发明创新协会 (Youth Geek Club)
         </h2>
@@ -177,7 +227,7 @@
         <p class="section-desc" data-cms-field="valuesDescription">指引工坊全体伙伴不断前行的核心信仰</p>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 60px;" data-cms-section="showValues">
+      <div class="values-grid" data-cms-section="showValues">
         <div class="value-card">
           <div class="value-icon">🛠️</div>
           <h4 style="font-size: 18px; font-weight: 750; margin-bottom: 8px;" data-cms-field="value1Title">务实求真</h4>

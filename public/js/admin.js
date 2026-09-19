@@ -37,7 +37,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (!checkAdminAuth()) return;
   initAdminProfile();
-  switchAdminTab('portal');
+
+  // 2. 智能基于 URL Hash 恢复激活标签页，移动端刷新页面不丢失当前位置
+  const hashTab = (window.location.hash || '').replace('#', '');
+  const validTabs = ['portal', 'pages', 'audit', 'templates', 'notices', 'proposals', 'messages', 'users', 'directions', 'categories', 'role-apps', 'mail'];
+  if (hashTab && validTabs.includes(hashTab)) {
+    switchAdminTab(hashTab);
+  } else {
+    switchAdminTab('portal');
+  }
+
   // 预检待审核申请数
   checkPendingCount();
 });
@@ -48,7 +57,7 @@ function checkAdminAuth() {
   if (!currentUser || !['admin', 'super_admin'].includes(currentUser.role)) {
     showToast('无权访问后台系统，需要管理员或超级管理员权限', 'error');
     setTimeout(() => {
-      window.location.href = '/';
+      window.location.href = currentUser ? '/' : '/?login=1';
     }, 1000);
     return false;
   }
@@ -73,9 +82,37 @@ function initAdminProfile() {
   }
 }
 
+// 移动端侧边栏切换与收起（支持背景滚动锁定）
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.admin-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  if (sidebar && overlay) {
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.querySelector('.admin-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  if (sidebar && overlay) {
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+
 // 2. 标签页切换
 function switchAdminTab(tabName) {
+  closeMobileSidebar();
   currentTab = tabName;
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', '#' + tabName);
+  }
+  window.scrollTo({ top: 0, behavior: 'instant' });
 
   // 更新侧边栏导航样式
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
@@ -409,12 +446,12 @@ async function loadApplications() {
           <td><span class="badge badge-admin">${escapeHtml(app.target_dept || '未指定')}</span></td>
           <td>
             <div style="display: flex; gap: 6px;">
-              <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download title="下载查看填写的申请表">
-                📥 下载
-              </a>
-              <button class="btn btn-outline btn-sm" onclick="previewSubmission(${app.id})" title="在线预览申请表内容">
+              <button class="btn btn-outline btn-sm" onclick="previewSubmission(${app.id})" title="在线预览申请表（Word支持自动转PDF）">
                 👁️ 预览
               </button>
+              <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download title="下载原件">
+                📥 下载
+              </a>
             </div>
           </td>
           <td style="font-size: 12.5px; color: var(--text-muted);">${formatDateTime(app.created_at)}</td>
@@ -450,14 +487,22 @@ function openReviewModal(appId) {
     </div>
     ${app.statement ? `<div style="margin-top: 8px; font-size: 13px; background: #ffffff; padding: 8px 12px; border-radius: 4px; border: 1px solid #e2e8f0;"><strong>个人特长/自述：</strong>${escapeHtml(app.statement)}</div>` : ''}
     <div style="margin-top: 10px;">
-      <strong>申请表附件：</strong>
-      <div style="display: flex; gap: 6px; margin-top: 6px;">
-        <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download>
-          📥 下载附件 (${escapeHtml(app.submission_filename || '申请表')})
-        </a>
-        <button class="btn btn-outline btn-sm" onclick="previewSubmission(${app.id})">
-          👁️ 在线预览
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+        <strong>申请表附件：</strong>
+        ${['doc', 'docx'].includes((app.submission_filename || '').split('.').pop().toLowerCase()) ? '<span class="badge badge-admin" style="font-size: 11px;">⚡ 支持 Word 自动转 PDF 审核</span>' : ''}
+      </div>
+      <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+        <button class="btn btn-primary btn-sm" onclick="previewSubmission(${app.id})" title="在线查看申请表内容">
+          👁️ 在线预览 ${['doc', 'docx'].includes((app.submission_filename || '').split('.').pop().toLowerCase()) ? '(转PDF)' : ''}
         </button>
+        <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}" class="btn btn-outline btn-sm" download>
+          📥 下载原件 (${escapeHtml(app.submission_filename || '申请表')})
+        </a>
+        ${['doc', 'docx'].includes((app.submission_filename || '').split('.').pop().toLowerCase()) ? `
+          <a href="/api/applications/download-submission/${app.id}?token=${encodeURIComponent(getToken() || '')}&format=pdf" class="btn btn-outline btn-sm" download title="下载系统转换后的 PDF">
+            📄 下载转换后的 PDF
+          </a>
+        ` : ''}
       </div>
     </div>
     ${app.reviewer_name ? `
@@ -482,38 +527,63 @@ function previewSubmission(appId) {
   const token = getToken();
   const previewUrl = `/api/applications/preview-submission/${appId}?token=${encodeURIComponent(token || '')}`;
   const downloadUrl = `/api/applications/download-submission/${appId}?token=${encodeURIComponent(token || '')}`;
+  const downloadPdfUrl = `/api/applications/download-submission/${appId}?token=${encodeURIComponent(token || '')}&format=pdf`;
 
   document.getElementById('preview-file-name').innerText = filename;
   document.getElementById('preview-download-link').href = downloadUrl;
 
+  const formatBadge = document.getElementById('preview-format-badge');
+  const pdfDownloadBtn = document.getElementById('preview-download-pdf-link');
+
   const container = document.getElementById('preview-container');
   container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);"><div class="loading-spinner" style="margin: 0 auto 16px;"></div>正在加载文件预览...</div>`;
 
-  if (ext === 'pdf') {
-    container.innerHTML = `<iframe src="${previewUrl}" style="width: 100%; min-height: 70vh; border: none;" onload="this.style.opacity='1';" onerror="document.getElementById('preview-container').innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ PDF 加载失败，请尝试下载后查看</div>'"></iframe>`;
+  if (ext === 'pdf' || ext === 'doc' || ext === 'docx') {
+    if (ext === 'doc' || ext === 'docx') {
+      if (formatBadge) {
+        formatBadge.style.display = 'inline-block';
+        formatBadge.innerText = '⚡ Word 自动转 PDF 预览';
+      }
+      if (pdfDownloadBtn) {
+        pdfDownloadBtn.style.display = 'inline-flex';
+        pdfDownloadBtn.href = downloadPdfUrl;
+      }
+    } else {
+      if (formatBadge) formatBadge.style.display = 'none';
+      if (pdfDownloadBtn) pdfDownloadBtn.style.display = 'none';
+    }
+
+    container.innerHTML = `<iframe src="${previewUrl}" style="width: 100%; min-height: 70vh; border: none; background: #fff;" onload="this.style.opacity='1';" onerror="document.getElementById('preview-container').innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ 预览加载失败，请尝试直接下载后查看</div>'"></iframe>`;
   } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext)) {
+    if (formatBadge) formatBadge.style.display = 'none';
+    if (pdfDownloadBtn) pdfDownloadBtn.style.display = 'none';
     container.innerHTML = `<div style="text-align: center; padding: 20px; overflow: auto; max-height: 75vh;"><img src="${previewUrl}" alt="${filename}" style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);" onload="this.style.opacity='1';" onerror="this.parentElement.innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ 图片加载失败</div>'"></div>`;
   } else if (ext === 'txt') {
+    if (formatBadge) formatBadge.style.display = 'none';
+    if (pdfDownloadBtn) pdfDownloadBtn.style.display = 'none';
     fetch(previewUrl)
       .then(r => r.text())
       .then(text => {
         container.innerHTML = `<pre style="white-space: pre-wrap; word-wrap: break-word; padding: 20px; margin: 0; font-size: 14px; line-height: 1.7; max-height: 70vh; overflow-y: auto; background: #fff;">${escapeHtml(text)}</pre>`;
       })
       .catch(() => {
-        container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--danger)">❌ 文本加载失败</div>`;
+        container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--danger)>❌ 文本加载失败</div>`;
       });
-  } else if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
+  } else if (['xls', 'xlsx'].includes(ext)) {
+    if (formatBadge) formatBadge.style.display = 'none';
+    if (pdfDownloadBtn) pdfDownloadBtn.style.display = 'none';
     container.innerHTML = `
       <div style="text-align: center; padding: 40px 20px;">
-        <div style="font-size: 48px; margin-bottom: 12px;">📑</div>
-        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 6px;">该文件为 Office 文档格式 (.${ext.toUpperCase()})</div>
-        <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">浏览器不支持直接预览 Word / Excel 文件</div>
+        <div style="font-size: 48px; margin-bottom: 12px;">📊</div>
+        <div style="font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 6px;">该文件为 Excel 表格格式 (.${ext.toUpperCase()})</div>
+        <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">浏览器不支持直接预览 Excel 表格，请下载后使用 Office 查看</div>
         <div style="display: flex; gap: 10px; justify-content: center;">
-          <a href="${previewUrl}" class="btn btn-outline btn-sm" target="_blank">🔗 尝试浏览器打开</a>
-          <a href="${downloadUrl}" class="btn btn-primary btn-sm" download>📥 立即下载</a>
+          <a href="${downloadUrl}" class="btn btn-primary btn-sm" download>📥 立即下载表格</a>
         </div>
       </div>`;
   } else {
+    if (formatBadge) formatBadge.style.display = 'none';
+    if (pdfDownloadBtn) pdfDownloadBtn.style.display = 'none';
     container.innerHTML = `
       <div style="text-align: center; padding: 40px 20px;">
         <div style="font-size: 48px; margin-bottom: 12px;">📎</div>

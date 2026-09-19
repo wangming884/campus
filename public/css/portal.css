@@ -109,7 +109,8 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(6px);
-  z-index: 1000;
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1050;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
@@ -125,14 +126,21 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 280px;
+  width: 300px;
+  max-width: 85vw;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #ffffff;
-  padding: 24px;
+  padding: 24px 20px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   box-shadow: -8px 0 25px rgba(0, 0, 0, 0.15);
   transform: translateX(100%);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-drawer.active .drawer-content {
@@ -173,7 +181,7 @@
 /* 首页 Hero 首屏超级美化 */
 .hero-section {
   position: relative;
-  padding: 90px 0 110px;
+  padding: clamp(48px, 8vw, 90px) 0 clamp(54px, 10vw, 110px);
   background: 
     radial-gradient(circle at 85% 15%, rgba(124, 58, 237, 0.12) 0%, transparent 45%),
     radial-gradient(circle at 10% 85%, rgba(37, 99, 235, 0.12) 0%, transparent 45%),
@@ -189,6 +197,7 @@
   text-align: center;
   position: relative;
   z-index: 2;
+  width: 100%;
 }
 
 .hero-badge-wrap {
@@ -228,12 +237,12 @@
 }
 
 .hero-title {
-  font-size: 54px;
-  line-height: 1.15;
+  font-size: clamp(28px, 5.5vw, 54px);
+  line-height: 1.2;
   font-weight: 850;
-  letter-spacing: -1.8px;
+  letter-spacing: -1px;
   color: #0f172a;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .hero-title .gradient-text {
@@ -243,10 +252,10 @@
 }
 
 .hero-subtitle {
-  font-size: 19.5px;
+  font-size: clamp(14.5px, 2.2vw, 19px);
   line-height: 1.65;
   color: #475569;
-  margin-bottom: 42px;
+  margin-bottom: 36px;
   font-weight: 400;
   max-width: 780px;
   margin-left: auto;
@@ -357,7 +366,7 @@
               radial-gradient(circle at 10% 90%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
               #ffffff;
   border-bottom: 1px solid var(--border-light);
-  padding: 60px 0 68px;
+  padding: clamp(36px, 6vw, 60px) 0 clamp(40px, 7vw, 68px);
   text-align: center;
 }
 
@@ -375,19 +384,20 @@
 }
 
 .page-banner-title {
-  font-size: 40px;
+  font-size: clamp(24px, 4.5vw, 40px);
   font-weight: 850;
   color: var(--text-main);
-  letter-spacing: -1px;
+  letter-spacing: -0.8px;
   margin-bottom: 12px;
 }
 
 .page-banner-desc {
-  font-size: 17px;
+  font-size: clamp(14px, 2vw, 17px);
   color: var(--text-muted);
   max-width: 680px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.65;
+  padding: 0 12px;
 }
 
 /* 通用板块与网格 */
@@ -941,23 +951,129 @@
   color: #64748b;
 }
 
-/* 响应式断点适配 */
+/* 响应式断点自适应系统 (Universal Fluid Breakpoint System) */
+@media (min-width: 901px) and (max-width: 1160px) {
+  .nav-menu { gap: 16px; }
+  .nav-link { font-size: 14px; padding: 6px 2px; }
+  .brand-logo { font-size: 18px; gap: 8px; }
+  .timeline-steps { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 992px) {
-  .stats-container { grid-template-columns: repeat(2, 1fr); margin-top: 24px; }
-  .pillar-grid { grid-template-columns: repeat(2, 1fr); }
-  .timeline-steps { grid-template-columns: 1fr; }
-  .recruitment-cta-box { flex-direction: column; text-align: center; }
-  .cta-right { justify-content: center; }
-  .footer-grid { grid-template-columns: 1fr; }
-  .hero-title { font-size: 40px; }
+  .stats-container { grid-template-columns: repeat(2, 1fr); margin-top: 24px; gap: 16px; }
+  .pillar-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .timeline-steps { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .recruitment-cta-box { flex-direction: column; text-align: center; gap: 20px; }
+  .cta-right { justify-content: center; width: 100%; }
+  .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+@media (max-width: 900px) {
+  .nav-menu { display: none !important; }
+  .mobile-toggle { display: block !important; }
+  .nav-btn-desktop { display: none !important; }
+  .nav-actions { gap: 6px; }
+  .nav-actions .btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .brand-logo {
+    min-width: 0;
+    flex-shrink: 1;
+    gap: 8px;
+  }
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .brand-logo span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 768px) {
-  .nav-menu { display: none; }
-  .mobile-toggle { display: block; }
+  .timeline-steps { grid-template-columns: 1fr; gap: 14px; }
+  .stats-container { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .pillar-grid { grid-template-columns: 1fr; gap: 16px; }
+}
+
+@media (max-width: 640px) {
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .hero-highlights-bar {
+    gap: 10px 14px !important;
+    padding: 10px 14px !important;
+    justify-content: center;
+    border-radius: var(--radius-lg) !important;
+  }
+  .hero-highlight-item:not(:last-child)::after {
+    display: none !important;
+  }
+  .hero-badge-wrap {
+    font-size: 12px;
+    padding: 6px 14px;
+    margin-bottom: 20px;
+  }
+  .recruitment-cta-box .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
   .stats-container { grid-template-columns: 1fr; }
-  .pillar-grid { grid-template-columns: 1fr; }
-  .page-banner-title { font-size: 30px; }
+  .stat-card { padding: 20px 16px !important; }
+  .nav-user-text {
+    display: none !important;
+  }
+  .brand-logo {
+    gap: 6px !important;
+  }
+  .brand-logo span {
+    font-size: 14px !important;
+    max-width: 96px !important;
+  }
+  .brand-icon {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 15px !important;
+  }
+  .nav-actions {
+    gap: 4px !important;
+  }
+  .nav-actions .btn {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+  }
+  .mobile-toggle {
+    font-size: 22px !important;
+    padding: 2px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand-logo span {
+    max-width: 74px !important;
+    font-size: 13px !important;
+  }
+  .nav-actions .btn {
+    padding: 3px 6px !important;
+    font-size: 11.5px !important;
+  }
 }
 /* =========================================================
    🌟 2026 官网门户前台超视觉深度打磨 (Portal Luxury Edition)
@@ -1070,4 +1186,51 @@
 
 .faq-card:hover {
   box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* 首页关于社团自适应双列网格 */
+.index-about-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
+  align-items: center;
+}
+.index-about-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 36px;
+  box-shadow: var(--shadow-md);
+}
+@media (max-width: 900px) {
+  .index-about-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .index-about-card {
+    padding: 22px 18px;
+  }
+}
+@media (max-width: 640px) {
+  .notice-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 16px;
+    gap: 12px;
+  }
+  .notice-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+@media (max-width: 480px) {
+  .index-about-card {
+    padding: 18px 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .drawer-auth-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

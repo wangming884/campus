@@ -1,5 +1,6 @@
 services:
   app:
+    build: .
     image: leemingze/campus-club:latest
     container_name: campus-web-app
     restart: always
@@ -19,7 +20,10 @@ services:
       - NODE_ENV=production
     volumes:
       - campus_uploads_data:/app/uploads
+      - campus_db_data:/app/data
 
 volumes:
   campus_uploads_data:
     name: campus_uploads_data
+  campus_db_data:
+    name: campus_db_data

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>联系方式与参访 - 高校学生社团官方门户</title>
   <meta name="description" content="社团活动室实体地址、招新QQ群、微信公众号、商务外联邮箱及工位参访指南。">
   <link rel="stylesheet" href="/css/style.css">
@@ -62,17 +62,37 @@
       box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
       transform: scale(1.08);
     }
+    .contact-card-box {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      box-shadow: var(--shadow-md);
+    }
+    .contact-form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
     .contact-layout {
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
       gap: 36px;
     }
     @media (max-width: 900px) {
-      .contact-channels-grid { grid-template-columns: repeat(2, 1fr); }
-      .contact-layout { grid-template-columns: 1fr; }
+      .contact-channels-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      .contact-layout { grid-template-columns: 1fr; gap: 24px; }
+    }
+    @media (max-width: 640px) {
+      .contact-card-box { padding: 20px 16px; }
+      .contact-form-grid-2 { grid-template-columns: 1fr; gap: 12px; }
     }
     @media (max-width: 580px) {
-      .contact-channels-grid { grid-template-columns: 1fr; }
+      .contact-channels-grid { grid-template-columns: 1fr; gap: 12px; }
+    }
+    @media (max-width: 360px) {
+      .channel-card { padding: 18px 14px; }
+      .contact-card-box { padding: 16px 12px; }
     }
   </style>
 </head>
@@ -128,12 +148,12 @@
       <!-- 参访指引与在线留言网格 -->
       <div class="contact-layout">
         <!-- 留言反馈 -->
-        <div data-cms-section="showInquiry" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
+        <div data-cms-section="showInquiry" class="contact-card-box">
           <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: #0f172a;" data-cms-field="inquiryTitle">💬 在线咨询与建议留言</h3>
           <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;" data-cms-field="inquiryDescription">如果您有任何关于招新、技术交流或项目赞助的疑问，欢迎给我们留言。</p>
 
           <form onsubmit="handleInquirySubmit(event)">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="contact-form-grid-2">
               <div class="form-group">
                 <label class="form-label">您的姓名 <span class="required">*</span></label>
                 <input type="text" class="form-control" id="inq-name" placeholder="请输入姓名" required>
@@ -162,7 +182,7 @@
         </div>
 
         <!-- 参访与工位规则 -->
-        <div data-cms-section="showGuide" style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px; box-shadow: var(--shadow-md);">
+        <div data-cms-section="showGuide" class="contact-card-box">
           <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 14px; color: #0f172a;" data-cms-field="guideTitle">🗺️ 工位与实体工作室参访指南</h3>
           
           <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px; line-height: 1.8; font-size: 14.5px; color: #334155;">
