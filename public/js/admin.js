@@ -118,6 +118,14 @@ function switchAdminTab(tabName) {
   } catch (e) {
     window.scrollTo(0, 0);
   }
+  const adminMain = document.querySelector('.admin-main');
+  if (adminMain) {
+    try {
+      adminMain.scrollTo({ top: 0, behavior: 'auto' });
+    } catch (e) {
+      adminMain.scrollTop = 0;
+    }
+  }
 
   // 更新侧边栏导航样式
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));

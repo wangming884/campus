@@ -5,8 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>高校学生社团官方门户 - 发明创新协会</title>
   <meta name="description" content="高校学生社团官方门户，提供社团简介、部门介绍、活动通知、招新申请表模板下载及在线报名审核全流程服务。">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/portal.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260921_07">
+  <link rel="stylesheet" href="/css/portal.css?v=20260921_07">
+  <style>
+    /* 核心保底规则：首页登录状态栏单行显示、绝不单字竖排折行、绝不单个按钮孤立换行 */
+    @media (min-width: 901px) {
+      .hero-auth-inner {
+        flex-wrap: nowrap !important;
+        border-radius: 9999px !important;
+        min-width: 860px !important;
+        max-width: 100% !important;
+        width: fit-content !important;
+        padding-right: 34px !important;
+      }
+      .hero-auth-btns {
+        flex-wrap: nowrap !important;
+      }
+    }
+    .hero-auth-row-top {
+      display: flex !important;
+      align-items: center !important;
+      gap: 7px !important;
+      white-space: nowrap !important;
+    }
+    .hero-auth-label,
+    .hero-auth-username,
+    .hero-auth-badge-slot {
+      white-space: nowrap !important;
+    }
+  </style>
 </head>
 <body>
 
@@ -70,12 +97,25 @@
         </a>
       </div>
 
-            <!-- 首页动态认证与快捷状态条 (自动适配不同屏幕) -->
+            <!-- 首页动态认证与快捷状态条 (高阶视觉打磨，自适应各端) -->
       <div id="hero-auth-bar" class="hero-auth-bar">
         <div class="hero-auth-inner logged-out">
+          <div class="hero-auth-left">
+            <div class="hero-auth-guest-badge">💡</div>
+            <div class="hero-auth-user-meta">
+              <div class="hero-auth-guest-text">
+                <span>新同学尚未登录？注册普通用户仅需 30 秒，即可在线投递入社申请表</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-auth-divider"></div>
           <div class="hero-auth-btns">
-            <button class="btn btn-primary btn-sm" onclick="openLoginModal()">🔑 账号登录</button>
-            <button class="btn btn-outline btn-sm" onclick="openRegisterModal()" style="background: #ffffff;">✨ 快速注册普通用户</button>
+            <button type="button" class="hero-btn hero-btn-primary" onclick="openLoginModal()">
+              <span class="hero-btn-icon">🔑</span><span>账号登录</span>
+            </button>
+            <button type="button" class="hero-btn hero-btn-secondary" onclick="openRegisterModal()">
+              <span class="hero-btn-icon">✨</span><span>快速注册普通用户</span>
+            </button>
           </div>
         </div>
       </div>
@@ -322,8 +362,8 @@
   <footer id="shared-footer" class="portal-footer"></footer>
 
   <!-- 脚本引入 -->
-  <script src="/js/api.js"></script>
-  <script src="/js/layout.js"></script>
-  <script src="/js/portal.js"></script>
+  <script src="/js/api.js?v=20260921_03"></script>
+  <script src="/js/layout.js?v=20260921_03"></script>
+  <script src="/js/portal.js?v=20260921_03"></script>
 </body>
 </html>

@@ -5,8 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>高校社团综合运营与管理后台</title>
   <meta name="description" content="高校学生社团后台管理系统，包含官网首页可视化编辑、入社审核中心、申请表模板管理、通知发布、RBAC权限调度及邮件通知服务。">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260921_03">
+  <link rel="stylesheet" href="/css/admin.css?v=20260921_04">
+  <style>
+    /* 核心保底规则：桌面端左侧功能栏绝对锁定不随右侧内容滚动 */
+    @media (min-width: 901px) {
+      .admin-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 260px !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        z-index: 100 !important;
+      }
+      .admin-main {
+        margin-left: 260px !important;
+        width: calc(100% - 260px) !important;
+        min-width: 0 !important;
+      }
+      .admin-topbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 90 !important;
+      }
+    }
+  </style>
   <script>
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -1226,7 +1251,7 @@
     </div>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/admin.js"></script>
+  <script src="/js/api.js?v=20260921_03"></script>
+  <script src="/js/admin.js?v=20260921_03"></script>
 </body>
 </html>

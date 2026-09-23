@@ -661,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================
-// 🌟 首页 Hero 区域动态登录/状态指示条 (Hero Auth Bar)
+// 🌟 首页 Hero 区域动态登录与状态指示栏 (Hero Auth Bar) 极致高阶美化
 // =========================================================
 function renderHeroAuthBar() {
   const bar = document.getElementById('hero-auth-bar');
@@ -671,30 +671,60 @@ function renderHeroAuthBar() {
   if (user) {
     bar.innerHTML = `
       <div class="hero-auth-inner logged-in">
-        <div class="hero-auth-text">
-          <span class="hero-auth-dot"></span>
-          <span>当前已登录：<strong>${escapeHtml(user.name)}</strong></span>
-          ${getRoleBadge(user.role)}
+        <div class="hero-auth-left">
+          <div class="hero-auth-avatar-wrap">
+            <div class="hero-auth-avatar">${escapeHtml(user.name ? user.name.slice(0, 1) : 'U')}</div>
+            <span class="hero-auth-status-dot" title="在线状态"></span>
+          </div>
+          <div class="hero-auth-user-meta">
+            <div class="hero-auth-row-top">
+              <span class="hero-auth-label">当前已登录：</span>
+              <span class="hero-auth-username">${escapeHtml(user.name)}</span>
+              <span class="hero-auth-badge-slot">${getRoleBadge(user.role)}</span>
+            </div>
+          </div>
         </div>
+        <div class="hero-auth-divider"></div>
         <div class="hero-auth-btns">
-          <a href="/profile" class="btn btn-outline btn-sm">👤 个人工作台</a>
-          ${isAdminOrSuper ? `<a href="/admin" class="btn btn-primary btn-sm">🛡️ 管理后台</a>` : ''}
-          <button type="button" class="btn btn-primary btn-sm" onclick="openLoginModal()" title="登录其他账号">🔑 账号登录/切换</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="openRegisterModal()" style="background: #ffffff;" title="注册新用户">✨ 快速注册</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="logout()" title="安全退出当前账号" style="color: var(--danger);">🚪 退出</button>
+          <a href="/profile" class="hero-btn hero-btn-profile" title="进入个人工作台与凭证">
+            <span class="hero-btn-icon">👤</span><span>个人工作台</span>
+          </a>
+          ${isAdminOrSuper ? `
+            <a href="/admin" class="hero-btn hero-btn-admin" title="进入社团运营管理后台">
+              <span class="hero-btn-icon">🛡️</span><span>管理后台</span>
+            </a>
+          ` : ''}
+          <button type="button" class="hero-btn hero-btn-switch" onclick="openLoginModal()" title="登录其他账号或切换用户">
+            <span class="hero-btn-icon">🔑</span><span>切换账号</span>
+          </button>
+          <button type="button" class="hero-btn hero-btn-register" onclick="openRegisterModal()" title="快速注册新账号">
+            <span class="hero-btn-icon">✨</span><span>注册新号</span>
+          </button>
+          <button type="button" class="hero-btn hero-btn-logout" onclick="logout()" title="安全退出系统">
+            <span class="hero-btn-icon">🚪</span><span>退出</span>
+          </button>
         </div>
       </div>
     `;
   } else {
     bar.innerHTML = `
       <div class="hero-auth-inner logged-out">
-        <div class="hero-auth-text">
-          <span style="font-size: 17px;">💡</span>
-          <span>新同学尚未登录？注册普通用户仅需 30 秒，即可在线投递申请表：</span>
+        <div class="hero-auth-left">
+          <div class="hero-auth-guest-badge">💡</div>
+          <div class="hero-auth-user-meta">
+            <div class="hero-auth-guest-text">
+              <span>欢迎新同学！注册普通用户仅需 30 秒，即可在线投递入社申请表</span>
+            </div>
+          </div>
         </div>
+        <div class="hero-auth-divider"></div>
         <div class="hero-auth-btns">
-          <button type="button" class="btn btn-primary btn-sm" onclick="openLoginModal()">🔑 账号登录</button>
-          <button type="button" class="btn btn-outline btn-sm" onclick="openRegisterModal()" style="background: #ffffff;">✨ 快速注册普通用户</button>
+          <button type="button" class="hero-btn hero-btn-primary" onclick="openLoginModal()">
+            <span class="hero-btn-icon">🔑</span><span>账号登录</span>
+          </button>
+          <button type="button" class="hero-btn hero-btn-secondary" onclick="openRegisterModal()">
+            <span class="hero-btn-icon">✨</span><span>快速注册普通用户</span>
+          </button>
         </div>
       </div>
     `;

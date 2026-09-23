@@ -59,9 +59,12 @@
   display: block;
 }
 
-/* 全局移动端横向防溢出约束 */
+/* 全局页面约束与管理后台容器 */
 html, body {
+  min-height: 100%;
   max-width: 100%;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
 }
 
@@ -71,21 +74,26 @@ html, body {
   min-height: 100dvh;
   background-color: #f1f5f9;
   max-width: 100vw;
-  overflow-x: hidden;
+  position: relative;
 }
 
-/* 侧边栏导航 */
+/* 侧边栏导航：绝对固定在视口左侧，绝不随右侧内容上下移动 */
 .admin-sidebar {
   width: 260px;
+  height: 100vh;
+  height: 100dvh;
   background: #0f172a;
   color: #f8fafc;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid #1e293b;
-  position: sticky;
+  position: fixed;
   top: 0;
-  height: 100vh;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -160,12 +168,50 @@ html, body {
 }
 
 .sidebar-nav {
-  flex-grow: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 12px 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.sidebar-header,
+.sidebar-user-card,
+.sidebar-footer {
+  flex-shrink: 0;
+}
+
+/* 侧边栏与主区域精致滚动条 */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.admin-main::-webkit-scrollbar {
+  width: 8px;
+}
+.admin-main::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.admin-main::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.admin-main::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .nav-item {
@@ -208,13 +254,16 @@ html, body {
   gap: 8px;
 }
 
-/* 主内容区 */
+/* 主内容区：左侧空出 260px 边栏宽度，内容上下滚动而左侧功能栏保持不动 */
 .admin-main {
-  flex-grow: 1;
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  max-width: 100%;
+  background-color: #f1f5f9;
   overflow-x: hidden;
 }
 
@@ -611,18 +660,27 @@ html, body {
   }
 
   .admin-sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    transform: translateX(-100%);
-    width: 280px;
-    max-width: 85vw;
-    height: 100vh;
-    height: 100dvh;
-    z-index: 1100;
-    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    transform: translateX(-100%) !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1100 !important;
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .admin-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  .admin-main {
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 
   .admin-sidebar.mobile-open {
@@ -970,8 +1028,31 @@ html, body {
 .sidebar-user-card .user-info-text {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
+  text-align: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.sidebar-user-card .user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.sidebar-user-card #admin-user-badge,
+.sidebar-user-card #sidebar-user-badge,
+.sidebar-user-card #user-role-badge {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 /* 申请表预览模态框全尺寸自适应系统 */

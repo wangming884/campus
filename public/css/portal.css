@@ -1296,9 +1296,12 @@
 .nav-user-text {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   line-height: 1.25;
   gap: 2px;
+  min-width: 0;
 }
 
 .nav-user-name {
@@ -1306,9 +1309,16 @@
   font-weight: 700;
   color: var(--text-main);
   max-width: 110px;
+  width: 100%;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin: 0 auto;
+}
+
+.nav-user-text .badge {
+  margin: 0 auto;
 }
 
 .nav-logout-btn {
@@ -1323,7 +1333,7 @@
 
 .nav-btn-switch {
   padding: 5px 9px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #334155;
   background: #f8fafc;
@@ -1380,6 +1390,11 @@
 .drawer-user-details {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .drawer-user-display-name {
@@ -1390,6 +1405,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
+  width: 100%;
+}
+
+.drawer-user-badge-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .drawer-user-quick-actions {
@@ -1421,63 +1444,319 @@
   border-top: 1px solid var(--border-light);
 }
 
-/* 首页 Hero 区域登录状态指示条 */
+/* =========================================================
+   🌟 首页 Hero 区域动态登录状态指示栏 (Hero Auth Bar Luxury Edition)
+   ========================================================= */
+
 .hero-auth-bar {
-  margin-top: 24px;
-  max-width: 680px;
+  margin: 24px auto 18px auto;
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 1060px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
 }
 
 .hero-auth-inner {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 10px 18px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  gap: 16px;
+  padding: 7px 34px 7px 18px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
-  transition: var(--transition);
+  box-shadow: 0 4px 22px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
-.hero-auth-inner.logged-out {
-  border-color: #bfdbfe;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(239, 246, 255, 0.95) 100%);
+@media (min-width: 901px) {
+  .hero-auth-inner {
+    min-width: 860px;
+    max-width: 1000px;
+    width: fit-content;
+  }
+}
+
+.hero-auth-inner:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 30px -4px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
 }
 
 .hero-auth-inner.logged-in {
-  border-color: #bbf7d0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 253, 244, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border: 1px solid rgba(203, 213, 225, 0.9);
 }
 
-.hero-auth-text {
+.hero-auth-inner.logged-out {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(239, 246, 255, 0.95) 100%);
+  border: 1px solid rgba(186, 230, 253, 0.9);
+}
+
+/* 左侧用户信息群组 */
+.hero-auth-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+/* 用户头像胶囊与在线状态圆点 */
+.hero-auth-avatar-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  color: #334155;
+  justify-content: center;
+}
+
+.hero-auth-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.32);
+  user-select: none;
+}
+
+.hero-auth-status-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.4);
+}
+
+/* 未登录模式下的灯泡高亮图标 */
+.hero-auth-guest-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+}
+
+/* 用户名与角色标签文字 */
+.hero-auth-user-meta {
+  display: inline-flex;
+  align-items: center;
   min-width: 0;
 }
 
-.hero-auth-btns {
-  display: flex;
+.hero-auth-row-top {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.hero-auth-label {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hero-auth-username {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hero-auth-badge-slot {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.hero-auth-guest-text {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 垂直精致微细分割线 */
+.hero-auth-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(226, 232, 240, 0.9);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* 右侧快捷操作按钮群 */
+.hero-auth-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+/* 状态栏按钮全局统一定义 - 消除默认原生丑陋黑边框与底色 */
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4.5px;
+  padding: 5.5px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap !important;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+  user-select: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
   flex-shrink: 0;
 }
 
-.hero-auth-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+.hero-btn:active {
+  transform: scale(0.96);
+}
+
+.hero-btn-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* 个人工作台按钮：干净白底轻质投影胶囊 */
+.hero-btn-profile {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.hero-btn-profile:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* 管理后台按钮：科技渐变深蓝，高明度识别 */
+.hero-btn-admin {
+  background: linear-gradient(135deg, #2563eb 0%, #4338ca 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(37, 99, 235, 0.4);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.hero-btn-admin:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.38);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* 切换账号按钮：微灰极简雅白质感 */
+.hero-btn-switch {
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.hero-btn-switch:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+/* 注册新号按钮：金琥珀微闪光晕胶囊 */
+.hero-btn-register {
+  background: linear-gradient(135deg, #fefce8 0%, #ffffff 100%);
+  color: #b45309;
+  border: 1px solid #fde68a;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.08);
+}
+
+.hero-btn-register:hover {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+/* 退出登录按钮：柔和安全浅粉红警示胶囊 */
+.hero-btn-logout {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
   flex-shrink: 0;
+  padding: 5.5px 11px;
+}
+
+.hero-btn-logout:hover {
+  background: #fee2e2;
+  color: #be123c;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+}
+
+/* 未登录主操作按钮 */
+.hero-btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.hero-btn-primary:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+
+.hero-btn-secondary {
+  background: #ffffff;
+  color: #2563eb;
+  border: 1.5px solid #93c5fd;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+}
+
+.hero-btn-secondary:hover {
+  background: #eff6ff;
+  border-color: #60a5fa;
+  transform: translateY(-1px);
 }
 
 /* 响应式微调与各级屏幕适配 */
@@ -1495,6 +1774,33 @@
   }
   .nav-right-cluster {
     gap: 8px;
+  }
+  .hero-auth-inner {
+    flex-direction: column;
+    border-radius: 18px;
+    padding: 14px 16px;
+    text-align: center;
+    gap: 12px;
+    max-width: 560px;
+    width: 100%;
+  }
+  .hero-auth-left {
+    justify-content: center;
+    width: 100%;
+  }
+  .hero-auth-divider {
+    display: none;
+  }
+  .hero-auth-btns {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hero-btn {
+    flex: 1 1 auto;
+    padding: 6px 12px;
+    min-height: 34px;
   }
 }
 
@@ -1526,21 +1832,30 @@
   }
   .hero-auth-inner {
     flex-direction: column;
-    border-radius: var(--radius-lg);
-    padding: 12px 14px;
+    border-radius: 18px;
+    padding: 14px 16px;
     text-align: center;
-    gap: 8px;
+    gap: 12px;
+    max-width: 540px;
+    width: 100%;
   }
-  .hero-auth-text {
+  .hero-auth-left {
     justify-content: center;
-    font-size: 13px;
+    width: 100%;
+  }
+  .hero-auth-divider {
+    display: none;
   }
   .hero-auth-btns {
     width: 100%;
     justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .hero-auth-btns .btn {
-    flex: 1;
+  .hero-btn {
+    flex: 1 1 auto;
+    padding: 6px 12px;
+    min-height: 34px;
   }
 }
 
@@ -1729,5 +2044,50 @@ button, .btn, a, input, select, textarea, [onclick] {
     padding: 2px !important;
     min-width: 32px;
     min-height: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-auth-inner {
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+  .hero-auth-left {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .hero-auth-row-top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .hero-auth-label {
+    font-size: 12.5px;
+  }
+  .hero-auth-username {
+    font-size: 14px;
+  }
+  .hero-auth-btns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+    width: 100%;
+  }
+  .hero-btn {
+    width: 100%;
+    padding: 7px 6px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+  .hero-btn-logout {
+    grid-column: span 2;
+  }
+  .hero-auth-inner.logged-out .hero-auth-btns {
+    grid-template-columns: 1fr;
+  }
+  .hero-auth-inner.logged-out .hero-btn {
+    width: 100%;
+    padding: 8px 10px;
   }
 }
