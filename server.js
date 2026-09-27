@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const { generalApiLimiter } = require('./src/middleware/rateLimiter');
 const path = require('path');
 const { initDatabase, cleanupReviewedSubmissions } = require('./src/db/database');
+const { renderPageHtml } = require('./src/services/pageRenderer');
 
 const authRoutes = require('./src/routes/auth');
 const portalRoutes = require('./src/routes/portal');
@@ -30,7 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // 静态资源托管
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // 全局 API 接口防刷限流中间件 (单 IP 窗口限制)
 app.use('/api', generalApiLimiter);
@@ -50,25 +51,55 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/daily-ideas', dailyIdeaRoutes);
 
-// 多独立网页路由
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// 多独立网页路由（服务端直出预渲染与数据水合注入，消除内容跳变与FOUC）
+app.get('/', async (req, res, next) => {
+  try {
+    const html = await renderPageHtml('index', 'home');
+    if (html) return res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get('/about', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'about.html'));
+app.get('/about', async (req, res, next) => {
+  try {
+    const html = await renderPageHtml('about', 'about');
+    if (html) return res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'about.html'));
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get('/recruitment', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'recruitment.html'));
+app.get('/recruitment', async (req, res, next) => {
+  try {
+    const html = await renderPageHtml('recruitment', 'recruitment');
+    if (html) return res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'recruitment.html'));
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get('/notices', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'notices.html'));
+app.get('/notices', async (req, res, next) => {
+  try {
+    const html = await renderPageHtml('notices', 'notices');
+    if (html) return res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'notices.html'));
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.get('/contact', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'contact.html'));
+app.get('/contact', async (req, res, next) => {
+  try {
+    const html = await renderPageHtml('contact', 'contact');
+    if (html) return res.send(html);
+    res.sendFile(path.join(__dirname, 'public', 'contact.html'));
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.get('/admin', (req, res) => {
@@ -79,6 +110,13 @@ app.get('/profile', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'profile.html'));
 });
 
+// 规范化重定向：将 /index.html 与其他 *.html 重定向至标准路由
+app.get('/:page([a-zA-Z0-9_-]+)\.html', (req, res) => {
+  const page = req.params.page;
+  if (page === 'index') return res.redirect(301, '/');
+  return res.redirect(301, `/${page}`);
+});
+
 // 自定义新增网页通用路由
 app.get('/page/:slug', async (req, res) => {
   try {
@@ -87,6 +125,8 @@ app.get('/page/:slug', async (req, res) => {
     if (!page) {
       return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
     }
+    const html = await renderPageHtml('custom_page', req.params.slug);
+    if (html) return res.send(html);
     res.sendFile(path.join(__dirname, 'public', 'custom_page.html'));
   } catch (error) {
     res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));

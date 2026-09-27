@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { getOne, execute, clubFilesDir } = require('../db/database');
+const { invalidateCache } = require('../services/pageRenderer');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 function decodeUploadFilename(filename) {
@@ -94,6 +95,7 @@ router.post('/about-document', authenticateToken, requireRole(['admin', 'super_a
       if (oldPath && fs.existsSync(oldPath) && oldPath !== req.file.path) fs.unlinkSync(oldPath);
     }
 
+    invalidateCache();
     res.status(201).json({ success: true, message: '社团介绍文件上传成功', data: { title, filename: originalName, size: req.file.size } });
   } catch (error) {
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
@@ -111,6 +113,7 @@ router.delete('/about-document', authenticateToken, requireRole(['admin', 'super
       : path.join(clubFilesDir, document.filename || '');
     if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
     await execute('DELETE FROM club_documents WHERE id = 1');
+    invalidateCache();
     res.json({ success: true, message: '社团介绍文件已删除' });
   } catch (error) {
     res.status(500).json({ success: false, message: '删除社团介绍文件失败' });
@@ -201,6 +204,7 @@ router.put('/config', authenticateToken, requireRole(['admin', 'super_admin']), 
       contact_json
     ]);
 
+    invalidateCache();
     res.json({
       success: true,
       message: '官网首页展示内容已即时同步更新！'

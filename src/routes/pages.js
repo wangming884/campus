@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { query, getOne, execute } = require('../db/database');
+const { invalidateCache } = require('../services/pageRenderer');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
 function parseTemplateConfig(page) {
@@ -110,6 +111,7 @@ router.post('/', authenticateToken, requireRole(['admin', 'super_admin']), async
       typeof template_config === 'string' ? template_config : JSON.stringify(template_config || {})
     ]);
 
+    invalidateCache();
     res.status(201).json({
       success: true,
       message: `自定义网页【${title}】创建成功！访问地址：${path}`,
@@ -161,6 +163,7 @@ router.put('/:id', authenticateToken, requireRole(['admin', 'super_admin']), asy
       pageId
     ]);
 
+    invalidateCache();
     res.json({
       success: true,
       message: `网页【${title}】更新成功！`
@@ -191,6 +194,7 @@ router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), 
 
     await execute('DELETE FROM site_pages WHERE id = ?', [pageId]);
 
+    invalidateCache();
     res.json({
       success: true,
       message: `已成功删除网页【${page.title}】！`

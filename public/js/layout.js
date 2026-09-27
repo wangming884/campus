@@ -4,6 +4,9 @@
 
 // 获取本地缓存的社团/站点名称
 function getStoredSiteName() {
+  if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.portalConfig && window.__INITIAL_DATA__.portalConfig.club_name) {
+    return window.__INITIAL_DATA__.portalConfig.club_name;
+  }
   try {
     return localStorage.getItem('campus_club_name') || '发明创新协会';
   } catch (e) {
@@ -26,6 +29,12 @@ async function initSharedLayout() {
 
   if (typeof initAutoResponsiveEngine === 'function') {
     initAutoResponsiveEngine();
+  }
+  if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && Array.isArray(window.__INITIAL_DATA__.navPages) && window.__INITIAL_DATA__.navPages.length > 0) {
+    cachedNavItems = window.__INITIAL_DATA__.navPages.map(p => ({
+      name: p.title,
+      path: p.path
+    }));
   }
   renderSharedNav();
   renderSharedFooter();
@@ -65,6 +74,9 @@ if (document.readyState === 'loading') {
 // 动态拉取导航栏页面列表
 async function loadDynamicNav() {
   try {
+    if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && Array.isArray(window.__INITIAL_DATA__.navPages)) {
+      return;
+    }
     const res = await apiRequest('/pages/nav');
     if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
       cachedNavItems = res.data.map(p => ({
@@ -419,9 +431,14 @@ function initGlobalAuthModals() {
 // 加载全站统一配置
 async function loadSharedConfig() {
   try {
-    const res = await apiRequest('/portal/config');
-    if (res.success && res.data) {
-      const cfg = res.data;
+    let cfg = null;
+    if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.portalConfig) {
+      cfg = window.__INITIAL_DATA__.portalConfig;
+    } else {
+      const res = await apiRequest('/portal/config');
+      if (res.success && res.data) cfg = res.data;
+    }
+    if (cfg) {
       if (cfg.club_name) {
         try { localStorage.setItem('campus_club_name', cfg.club_name); } catch (e) {}
       }
@@ -452,8 +469,13 @@ async function loadSharedConfig() {
 // 系统页存在自定义 HTML 时，替换默认页面模板，便于为不同社团快速定制官网。
 async function loadSystemPageCMS(slug) {
   try {
-    const res = await apiRequest(`/pages/${encodeURIComponent(slug)}`);
-    const page = res && res.success ? res.data : null;
+    let page = null;
+    if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.pageCMS && window.__INITIAL_DATA__.pageCMS.slug === slug) {
+      page = window.__INITIAL_DATA__.pageCMS;
+    } else {
+      const res = await apiRequest(`/pages/${encodeURIComponent(slug)}`);
+      page = res && res.success ? res.data : null;
+    }
     if (!page) return false;
     if (!page.content_html || !page.content_html.trim()) {
       applyPageTemplateConfig(page.template_config || {});

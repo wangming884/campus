@@ -249,7 +249,7 @@
         </div>
 
         <!-- 右列：常见问题解答 (FAQ) & 提示 -->
-        <div data-cms-section="showFaq">
+        <div data-cms-section="showFaq" style="display: none;">
           <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 20px; color: #0f172a;" data-cms-field="faqTitle">💡 招新常见疑问解答 (FAQ)</h3>
 
           <div class="faq-card">
@@ -321,10 +321,16 @@
 
     async function loadActiveTemplateInfo() {
       try {
-        const res = await apiRequest('/applications/template/active');
-        if (res.success && res.data) {
-          document.getElementById('rec-template-title').innerText = res.data.title;
-          document.getElementById('rec-template-meta').innerText = `存储文件名: ${res.data.filename} · 大小: ${formatFileSize(res.data.size)} · 格式: Word/PDF`;
+        let tpl = null;
+        if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.activeTemplate !== undefined) {
+          tpl = window.__INITIAL_DATA__.activeTemplate;
+        } else {
+          const res = await apiRequest('/applications/template/active');
+          if (res.success && res.data) tpl = res.data;
+        }
+        if (tpl) {
+          document.getElementById('rec-template-title').innerText = tpl.title;
+          document.getElementById('rec-template-meta').innerText = `存储文件名: ${tpl.filename} · 大小: ${formatFileSize(tpl.size)} · 格式: Word/PDF`;
         }
       } catch (e) {}
     }

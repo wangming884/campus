@@ -12,9 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // 加载官网首页配置
 async function loadPortalConfig() {
   try {
-    const res = await apiRequest('/portal/config');
-    if (res.success && res.data) {
-      const cfg = res.data;
+    let cfg = null;
+    if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.portalConfig) {
+      cfg = window.__INITIAL_DATA__.portalConfig;
+    } else {
+      const res = await apiRequest('/portal/config');
+      if (res.success && res.data) cfg = res.data;
+    }
+    if (cfg) {
 
       // 更新首屏 Hero
       if (cfg.hero_badge && document.getElementById('hero-badge-text')) {
@@ -107,8 +112,15 @@ async function loadHomepageNotices() {
 // 加载当前生效的申请表模板信息
 async function loadActiveTemplate() {
   try {
-    const res = await apiRequest('/applications/template/active');
-    if (res.success && res.data) {
+    let tpl = null;
+    if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.activeTemplate !== undefined) {
+      tpl = window.__INITIAL_DATA__.activeTemplate;
+    } else {
+      const res = await apiRequest('/applications/template/active');
+      if (res.success && res.data) tpl = res.data;
+    }
+    if (tpl) {
+      const res = { data: tpl };
       const tip = document.getElementById('cta-template-info');
       if (tip) {
         tip.innerText = `官方当前提供下载：《${res.data.title}》（大小: ${formatFileSize(res.data.size)}）。下载并填写后，即可前往纳新通道在线投递。`;

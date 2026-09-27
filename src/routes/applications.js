@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { query, getOne, execute, templatesDir, submissionsDir } = require('../db/database');
+const { invalidateCache } = require('../services/pageRenderer');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { sendAdmissionEmail, sendRejectionEmail } = require('../services/mailer');
 const { buildExcelXml, buildCsvWithBom } = require('../utils/excelExporter');
@@ -189,6 +190,7 @@ router.put('/templates/:id/active', authenticateToken, requireRole(['admin', 'su
     await execute('UPDATE application_templates SET is_active = 0');
     await execute('UPDATE application_templates SET is_active = 1 WHERE id = ?', [templateId]);
 
+    invalidateCache();
     res.json({ success: true, message: '已成功将该模板设为默认下载模板' });
   } catch (error) {
     console.error('Activate template error:', error);

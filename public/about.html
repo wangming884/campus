@@ -235,14 +235,10 @@
   <section class="section">
     <div class="container">
       <div class="about-intro-card">
-        <h2 style="font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 18px;" id="about-page-title" data-cms-field="introTitle">
-          发明创新协会 (Youth Geek Club)
-        </h2>
-        <div id="about-page-content" data-cms-field="introContent" style="font-size: 16px; line-height: 1.85; color: #334155; white-space: pre-line;">
-          发明创新协会成立于2012年，是冶金工程学院科技学术类学生社团。社团始终坚持“树立时代精神，启迪创新思维，探讨学术科研，锻炼实践能力，展现个人风采，丰富校园生活”的初心，以项目实战驱动技能成长，以多元活动凝聚青年力量。
+        <h2 style="font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 18px;" id="about-page-title" data-cms-field="introTitle">关于发明创新协会</h2>
+        <div id="about-page-content" data-cms-field="introContent" style="font-size: 16px; line-height: 1.85; color: #334155; white-space: pre-line;">安徽工业大学发明创新协会创立于 2012 年。在此十年内我们秉承着 “团结、求实、勤奋、创新” 的校风坚持 “树立时代精神，启迪创新思维，探讨学术科研，锻炼实践能力，展现个人风采，丰富校园生活” 的宗旨。本协会致力于开拓创新思维，激励会员相互之间相互探讨学术问题，形成良好的学术氛围。在日常生活中定期交流设想，不断提高会员的创新能力，为撰写专利打下良好基础。
 
-          
-        </div>
+本协会自成立至今，组织会员赴律师事务所社会实践近 50 次，授权专利近 500 项；组织创新培训、双创赛事 500 余次；获得国家级、省级以及校级奖项 1000 余项；2019 - 2020 年度被评为 “优秀社团部” 荣誉称号，2020 年被评为 “全国最具影响力的双创社团”，在 2022 - 2023 学年第二学期安徽工业大学社团联合会业务技能评比大赛中获得一等奖，连续 9 年获得 “校十佳社团” 荣誉称号。</div>
         <div id="about-document-download" style="display: none; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-light);">
           <a class="btn btn-primary" href="/api/portal/about-document" download>📥 下载社团介绍文件</a>
           <span id="about-document-download-meta" style="margin-left: 10px; font-size: 13px; color: var(--text-muted);"></span>
@@ -373,20 +369,32 @@
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         await loadSystemPageCMS('about');
-        const res = await apiRequest('/portal/config');
-        if (res.success && res.data) {
+        let cfg = null;
+        if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.portalConfig) {
+          cfg = window.__INITIAL_DATA__.portalConfig;
+        } else {
+          const res = await apiRequest('/portal/config');
+          if (res.success && res.data) cfg = res.data;
+        }
+        if (cfg) {
           const template = window.activePageTemplate || {};
-          if (res.data.about_title && !template.introTitle) {
-            document.getElementById('about-page-title').innerText = res.data.about_title;
+          if (cfg.about_title && !template.introTitle) {
+            document.getElementById('about-page-title').innerText = cfg.about_title;
           }
-          if (res.data.about_content && !template.introContent) {
-            document.getElementById('about-page-content').innerText = res.data.about_content;
+          if (cfg.about_content && !template.introContent) {
+            document.getElementById('about-page-content').innerText = cfg.about_content;
           }
         }
-        const documentRes = await apiRequest('/portal/about-document/info');
-        if (documentRes.success && documentRes.data) {
-          document.getElementById('about-document-download').style.display = 'block';
-          document.getElementById('about-document-download-meta').innerText = `${documentRes.data.title || documentRes.data.filename} · ${formatFileSize(documentRes.data.size)}`;
+        let docInfo = null;
+        if (typeof window !== 'undefined' && window.__INITIAL_DATA__ && window.__INITIAL_DATA__.clubDocument !== undefined) {
+          docInfo = window.__INITIAL_DATA__.clubDocument;
+        } else {
+          const documentRes = await apiRequest('/portal/about-document/info');
+          if (documentRes.success && documentRes.data) docInfo = documentRes.data;
+        }
+        if (docInfo) {
+          document.getElementById('about-document-download').style.display = 'flex';
+          document.getElementById('about-document-download-meta').innerText = `${docInfo.title || docInfo.filename} · ${formatFileSize(docInfo.size)}`;
         }
       } catch (e) {}
     });
