@@ -316,6 +316,14 @@ router.delete('/:id', authenticateToken, requireRole(['admin', 'super_admin']), 
     await execute('DELETE FROM member_messages WHERE user_id = ?', [targetUserId]);
     await execute('DELETE FROM activity_proposals WHERE user_id = ?', [targetUserId]);
     await execute('DELETE FROM mail_logs WHERE to_email = ?', [targetUser.email]);
+    const leaderGroups = await query('SELECT id FROM club_groups WHERE leader_id = ?', [targetUserId]);
+    for (const g of leaderGroups) {
+      await execute('DELETE FROM club_group_members WHERE group_id = ?', [g.id]);
+    }
+    await execute('DELETE FROM club_group_members WHERE user_id = ?', [targetUserId]);
+    await execute('DELETE FROM club_groups WHERE leader_id = ?', [targetUserId]);
+    await execute('DELETE FROM daily_ideas WHERE user_id = ?', [targetUserId]);
+    await execute('DELETE FROM role_applications WHERE user_id = ?', [targetUserId]);
 
     // 最后删除用户本身
     await execute('DELETE FROM users WHERE id = ?', [targetUserId]);

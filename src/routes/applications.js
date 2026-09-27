@@ -21,11 +21,22 @@ const safeFileFilter = (req, file, cb) => {
   }
 };
 
+// 安全文件名转码（防止 UTF-8 中文被 Latin1 二次转码损坏）
+function safeOriginalName(raw) {
+  if (!raw) return '';
+  if (/[\u4e00-\u9fa5]/.test(raw)) return raw;
+  try {
+    const decoded = Buffer.from(raw, 'latin1').toString('utf8');
+    if (/[\u4e00-\u9fa5]/.test(decoded) && !decoded.includes('\ufffd')) return decoded;
+  } catch (e) {}
+  return raw;
+}
+
 // 模板存储配置
 const templateStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, templatesDir),
   filename: (req, file, cb) => {
-    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const originalName = safeOriginalName(file.originalname);
     const ext = path.extname(originalName);
     const base = path.basename(originalName, ext).replace(/[^\w\u4e00-\u9fa5-_]/g, '');
     const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1e4);
@@ -42,7 +53,7 @@ const uploadTemplate = multer({
 const submissionStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, submissionsDir),
   filename: (req, file, cb) => {
-    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    const originalName = safeOriginalName(file.originalname);
     const ext = path.extname(originalName);
     const safeUserName = (req.user ? req.user.name : 'user').replace(/[^\w\u4e00-\u9fa5-_]/g, '');
     const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1e4);
@@ -135,7 +146,7 @@ router.post('/templates', authenticateToken, requireRole(['admin', 'super_admin'
       return res.status(400).json({ success: false, message: '请选择要上传的模板文件' });
     }
 
-    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const originalName = safeOriginalName(req.file.originalname);
     const title = req.body.title || originalName;
     const setActive = req.body.set_active === 'true' || req.body.set_active === true;
 
@@ -240,7 +251,7 @@ router.post('/submit', authenticateToken, applicationSubmitLimiter, uploadSubmis
       return res.status(400).json({ success: false, message: '请上传已填写的入社申请表文件（Word/PDF/Excel等）' });
     }
 
-    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const originalName = safeOriginalName(req.file.originalname);
     const { target_dept, statement } = req.body;
 
     // 自动将 Word 申请表转换为 PDF，便于管理员在线审核

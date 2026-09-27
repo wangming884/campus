@@ -1,5 +1,7 @@
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const { pathToFileURL } = require('url');
 const { execFile } = require('child_process');
 
 /**
@@ -146,7 +148,7 @@ async function convertWordToPdf(inputFilePath, outputDir) {
       '--nologo',
       '--nodefault',
       '--norestore',
-      '-env:UserInstallation=file:///tmp/libreoffice_profile',
+      `-env:UserInstallation=${pathToFileURL(path.join(os.tmpdir(), 'libreoffice_profile')).href}`,
       '--convert-to',
       'pdf',
       '--outdir',

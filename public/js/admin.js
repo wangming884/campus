@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2. 智能基于 URL Hash 恢复激活标签页，移动端刷新页面不丢失当前位置
   const hashTab = (window.location.hash || '').replace('#', '');
-  const validTabs = ['portal', 'pages', 'audit', 'templates', 'notices', 'proposals', 'messages', 'users', 'directions', 'categories', 'role-applications', 'role-apps', 'mail'];
+  const validTabs = ['portal', 'pages', 'audit', 'templates', 'notices', 'proposals', 'messages', 'users', 'directions', 'categories', 'role-applications', 'role-apps', 'mail', 'groups', 'daily-ideas'];
   if (hashTab && validTabs.includes(hashTab)) {
     switchAdminTab(hashTab);
   } else {
@@ -153,7 +153,9 @@ function switchAdminTab(tabName) {
     mail: '📧 邮件服务配置与发信日志模拟器',
     directions: '🎯 发展意向方向选项管理',
     categories: '🏷️ 活动类别选项管理',
-    'role-applications': '🔄 社团成员晋升管理员申请审核'
+    'role-applications': '🔄 社团成员晋升管理员申请审核',
+    groups: '👥 我的分组与组员管理 (组长中枢)',
+    'daily-ideas': '💡 社员每日一设想审阅与在线评阅'
   };
   document.getElementById('topbar-page-title').innerHTML = `<span>${titleMap[tabName] || '管理后台'}</span>`;
 
@@ -171,6 +173,8 @@ function switchAdminTab(tabName) {
     case 'directions': loadDirectionsAdmin(); break;
     case 'categories': loadCategoriesAdmin(); break;
     case 'role-applications': loadRoleApplicationsAdmin(); break;
+    case 'groups': loadAdminGroups(); break;
+    case 'daily-ideas': loadAdminDailyIdeas(); break;
   }
 }
 
@@ -197,6 +201,24 @@ async function checkPendingCount() {
       }
     }
   } catch (e) {}
+
+  // 检查每日一设待批阅数量
+  try {
+    const ideasRes = await apiRequest('/daily-ideas?status=submitted');
+    if (ideasRes.success) {
+      const count = typeof ideasRes.pendingCount === 'number' ? ideasRes.pendingCount : (ideasRes.data || []).length;
+      const badge = document.getElementById('badge-daily-ideas-count');
+      if (badge) {
+        if (count > 0) {
+          badge.innerText = count;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+  } catch (e) {}
+
 }
 
 // ==================== 1. 官网主页配置 (Portal CMS) ====================
@@ -2278,6 +2300,547 @@ function onRecipientSelectChanged() {
     `;
   }
 }
+
+// ==================== 小组与组员管理 (Admin Groups & Leader) ====================
+let cachedAdminGroup = null;
+let cachedGroupMembers = [];
+let cachedCandidates = [];
+let currentAdminTargetGroupId = null;
+
+async function loadAdminGroups() {
+  const nameEl = document.getElementById('admin-group-name');
+  const descEl = document.getElementById('admin-group-desc');
+  const countBadge = document.getElementById('admin-group-member-count');
+  const leaderBadge = document.getElementById('admin-group-leader-badge');
+  const tbody = document.getElementById('group-members-table-body');
+
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">正在加载组员数据...</td></tr>';
+
+  try {
+    const url = currentAdminTargetGroupId ? `/groups/my-group?groupId=${currentAdminTargetGroupId}` : '/groups/my-group';
+    const res = await apiRequest(url);
+    if (res.success && res.group) {
+      cachedAdminGroup = res.group;
+      currentAdminTargetGroupId = res.group.id;
+      cachedGroupMembers = res.members || [];
+
+      if (nameEl) nameEl.innerText = res.group.name;
+      if (descEl) descEl.innerText = res.group.description || "暂无小组简介，点击上方【修改小组信息】进行完善。";
+      if (countBadge) countBadge.innerText = `${cachedGroupMembers.length} 人`;
+      if (leaderBadge) leaderBadge.innerText = `组长：${res.group.leader_name || currentUser.name}`;
+
+      renderGroupMembers(cachedGroupMembers);
+
+      // 如果是超级管理员，加载全量小组供切换
+      if (currentUser.role === 'super_admin') {
+        loadAllGroupsDropdown();
+      }
+    } else {
+      if (nameEl) nameEl.innerText = "小组初始化异常";
+      tbody.innerHTML = '<tr><td colspan="8" class="alert alert-danger">未能加载小组信息</td></tr>';
+    }
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="alert alert-danger">加载失败: ${e.message}</td></tr>`;
+  }
+}
+
+// 渲染组员表格
+function renderGroupMembers(members) {
+  const tbody = document.getElementById('group-members-table-body');
+  if (!tbody) return;
+
+  if (!members || members.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 40px; color: #64748b;">
+          <div style="font-size: 36px; margin-bottom: 8px;">👥</div>
+          <div style="font-size: 15px; font-weight: 600; color: #1e293b;">当前小组尚未添加任何组员</div>
+          <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">点击右上角【➕ 选择/添加组员】挑选您的团队成员！</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = members.map((m, index) => `
+    <tr>
+      <td style="color:#64748b; font-size:13px;">${index + 1}</td>
+      <td style="font-weight:700; color:#0f172a; font-size:14px;">${escapeHtml(m.name)}</td>
+      <td>${escapeHtml(m.college || "-")} / ${escapeHtml(m.className || "-")}</td>
+      <td>${escapeHtml(m.email)}</td>
+      <td>${escapeHtml(m.qq || "-")}</td>
+      <td>${getRoleBadge(m.role)}</td>
+      <td style="font-size:12.5px; color:#64748b;">${(m.joined_at || "").substring(0, 10)}</td>
+      <td>
+        <button class="btn btn-danger btn-sm" onclick="removeGroupMember(${m.id}, '${escapeHtml(m.name)}')" style="padding:3px 8px; font-size:12px;">
+          ❌ 移除组员
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// 组内搜索筛选
+function filterCurrentGroupMembers(keyword) {
+  if (!keyword || !keyword.trim()) {
+    renderGroupMembers(cachedGroupMembers);
+    return;
+  }
+  const k = keyword.trim().toLowerCase();
+  const filtered = cachedGroupMembers.filter(m =>
+    (m.name && m.name.toLowerCase().includes(k)) ||
+    (m.className && m.className.toLowerCase().includes(k)) ||
+    (m.college && m.college.toLowerCase().includes(k)) ||
+    (m.email && m.email.toLowerCase().includes(k))
+  );
+  renderGroupMembers(filtered);
+}
+
+// 超级管理员切换查看其它小组
+async function loadAllGroupsDropdown() {
+  const select = document.getElementById('admin-group-switch-select');
+  if (!select) return;
+
+  try {
+    const res = await apiRequest('/groups/all');
+    if (res.success && Array.isArray(res.data)) {
+      select.style.display = 'inline-block';
+      select.innerHTML = res.data.map(g => `
+        <option value="${g.id}" ${g.id === currentAdminTargetGroupId ? "selected" : ""}>
+          ${escapeHtml(g.name)} (组长: ${escapeHtml(g.leader_name)})
+        </option>
+      `).join('');
+    }
+  } catch (e) {}
+}
+
+async function switchAdminManagedGroup(groupId) {
+  currentAdminTargetGroupId = Number(groupId);
+  await loadAdminGroups();
+}
+
+// 打开“选择候选组员”弹窗
+function openSelectCandidatesModal() {
+  openModal('modal-select-candidates');
+  loadGroupCandidates();
+}
+
+// 加载候选社团成员
+async function loadGroupCandidates() {
+  const tbody = document.getElementById('candidates-table-body');
+  const filter = document.getElementById('candidates-filter-select').value;
+  const keyword = document.getElementById('candidates-search-input').value;
+  const checkAll = document.getElementById('check-all-candidates');
+  if (checkAll) checkAll.checked = false;
+  updateSelectedCandidatesCount();
+
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px;">正在加载候选成员...</td></tr>';
+
+  try {
+    let url = `/groups/candidates?filter=${encodeURIComponent(filter)}`;
+    if (keyword && keyword.trim()) url += `&keyword=${encodeURIComponent(keyword.trim())}`;
+    if (currentAdminTargetGroupId) url += `&groupId=${currentAdminTargetGroupId}`;
+
+    const res = await apiRequest(url);
+    if (res.success && Array.isArray(res.data)) {
+      cachedCandidates = res.data;
+      if (res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#64748b;">未找到符合条件的候选成员</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = res.data.map(c => {
+        let groupStatus = `<span style="color:#94a3b8; font-size:12px;">未加入任何小组</span>`;
+        if (c.is_in_my_group) {
+          groupStatus = `<span class="badge badge-member" style="font-size:11px;">已在当前组</span>`;
+        } else if (c.current_group_name) {
+          groupStatus = `<span class="badge badge-user" style="font-size:11px;">在【${escapeHtml(c.current_group_name)}】</span>`;
+        }
+
+        return `
+          <tr>
+            <td>
+              <input type="checkbox" class="candidate-check" value="${c.id}" ${c.is_in_my_group ? "disabled checked" : ""} onchange="updateSelectedCandidatesCount()">
+            </td>
+            <td style="font-weight:600; color:#0f172a;">${escapeHtml(c.name)}</td>
+            <td>${escapeHtml(c.college || "-")} / ${escapeHtml(c.className || "-")}</td>
+            <td>${escapeHtml(c.email)}</td>
+            <td>${getRoleBadge(c.role)}</td>
+            <td>${groupStatus}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="alert alert-danger">获取候选失败: ${e.message}</td></tr>`;
+  }
+}
+
+function searchGroupCandidates(keyword) {
+  loadGroupCandidates();
+}
+
+function toggleSelectAllCandidates(checked) {
+  document.querySelectorAll('.candidate-check:not(:disabled)').forEach(cb => cb.checked = checked);
+  updateSelectedCandidatesCount();
+}
+
+function updateSelectedCandidatesCount() {
+  const count = document.querySelectorAll('.candidate-check:not(:disabled):checked').length;
+  const el = document.getElementById('selected-candidates-count');
+  if (el) el.innerText = count;
+}
+
+// 确认将选中成员添加到我的小组
+async function submitAddGroupMembers() {
+  const selectedBoxes = document.querySelectorAll('.candidate-check:not(:disabled):checked');
+  const userIds = Array.from(selectedBoxes).map(b => Number(b.value));
+
+  if (userIds.length === 0) {
+    showToast('请先至少勾选一位要添加的成员', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-add-members');
+  btn.disabled = true;
+  btn.innerText = "正在添加...";
+
+  try {
+    const res = await apiRequest('/groups/members', {
+      method: 'POST',
+      body: JSON.stringify({ userIds, groupId: currentAdminTargetGroupId })
+    });
+
+    if (res.success) {
+      showToast(res.message || '添加成功！', 'success');
+      closeModal('modal-select-candidates');
+      await loadAdminGroups();
+    } else {
+      showToast(res.message || '添加失败', 'error');
+    }
+  } catch (e) {
+    showToast('操作异常: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "➕ 确认加入本组";
+  }
+}
+
+// 移除组员
+async function removeGroupMember(userId, userName) {
+  if (!confirm(`确定要将成员【${userName}】从本小组中移除吗？`)) return;
+
+  try {
+    let url = `/groups/members/${userId}`;
+    if (currentAdminTargetGroupId) url += `?groupId=${currentAdminTargetGroupId}`;
+    const res = await apiRequest(url, { method: 'DELETE' });
+    if (res.success) {
+      showToast(`已将【${userName}】移出小组`, 'success');
+      await loadAdminGroups();
+    } else {
+      showToast(res.message || '移除失败', 'error');
+    }
+  } catch (e) {
+    showToast('移除异常: ' + e.message, 'error');
+  }
+}
+
+// 打开“编辑小组信息”弹窗
+function openEditGroupModal() {
+  if (!cachedAdminGroup) return;
+  document.getElementById('edit-group-name').value = cachedAdminGroup.name || "";
+  document.getElementById('edit-group-desc').value = cachedAdminGroup.description || "";
+  openModal('modal-edit-group');
+}
+
+// 提交小组修改
+async function submitEditGroupInfo(e) {
+  if (e) e.preventDefault();
+  const name = document.getElementById('edit-group-name').value;
+  const description = document.getElementById('edit-group-desc').value;
+
+  if (!name || !name.trim()) {
+    showToast('小组名称不能为空', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-edit-group');
+  btn.disabled = true;
+  btn.innerText = "保存中...";
+
+  try {
+    const res = await apiRequest('/groups/my-group', {
+      method: 'PUT',
+      body: JSON.stringify({ name: name.trim(), description: description.trim(), groupId: currentAdminTargetGroupId })
+    });
+
+    if (res.success) {
+      showToast('小组信息更新成功！', 'success');
+      closeModal('modal-edit-group');
+      await loadAdminGroups();
+    } else {
+      showToast(res.message || '保存失败', 'error');
+    }
+  } catch (err) {
+    showToast('保存异常: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "保存更改";
+  }
+}
+
+// ==================== 每日一设管理与评阅 (Daily Ideas Admin) ====================
+let cachedDailyIdeas = [];
+let currentReviewingIdeaId = null;
+
+async function loadAdminDailyIdeas() {
+  const tbody = document.getElementById('daily-ideas-table-body');
+  const totalBadge = document.getElementById('ideas-total-badge');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#64748b;">正在加载设想数据...</td></tr>';
+
+  const scope = document.getElementById('ideas-scope-select')?.value || 'my_group';
+  const status = document.getElementById('ideas-status-select')?.value || 'all';
+  const date = document.getElementById('ideas-date-filter')?.value || '';
+  const keyword = document.getElementById('ideas-keyword-filter')?.value || '';
+
+  let url = `/daily-ideas?scope=${encodeURIComponent(scope)}&status=${encodeURIComponent(status)}`;
+  if (date) url += `&date=${encodeURIComponent(date)}`;
+  if (keyword && keyword.trim()) url += `&keyword=${encodeURIComponent(keyword.trim())}`;
+
+  try {
+    const res = await apiRequest(url);
+    if (res.success && Array.isArray(res.data)) {
+      cachedDailyIdeas = res.data;
+      if (totalBadge) totalBadge.innerText = `${res.data.length} 篇`;
+
+      // 同步待批复角标
+      const badge = document.getElementById('badge-daily-ideas-count');
+      if (badge) {
+        const pCount = typeof res.pendingCount === 'number' ? res.pendingCount : 0;
+        if (pCount > 0) {
+          badge.innerText = pCount;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      if (res.data.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 40px; color: #64748b;">
+              <div style="font-size: 36px; margin-bottom: 8px;">💡</div>
+              <div style="font-size: 15px; font-weight: 600; color: #1e293b;">暂无符合条件的设想记录</div>
+              <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">社团成员提交每日设想后，将在此统一集中展示与在线阅览。</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = res.data.map((item, index) => {
+        let statusBadge = `<span class="badge badge-status-pending">待查阅</span>`;
+        if (item.status === 'reviewed') {
+          statusBadge = `<span class="badge badge-status-approved">已查阅</span>`;
+        } else if (item.status === 'starred') {
+          statusBadge = `<span class="badge badge-super">🌟 优秀精选</span>`;
+        }
+
+        // 文件类型解析
+        let fileBadge = `<span style="color:#94a3b8; font-size:12px;">无附件</span>`;
+        let hasPreviewPdf = false;
+        if (item.file_path) {
+          const ext = (item.original_filename || item.file_path).split('.').pop().toLowerCase();
+          if (['doc', 'docx'].includes(ext)) {
+            fileBadge = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px;">📝 Word (转PDF)</span>`;
+            hasPreviewPdf = true;
+          } else if (ext === 'pdf') {
+            fileBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-size:11px;">📄 PDF</span>`;
+            hasPreviewPdf = true;
+          } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            fileBadge = `<span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:11px;">🖼️ 图片</span>`;
+            hasPreviewPdf = true;
+          } else {
+            fileBadge = `<span class="badge badge-user" style="font-size:11px;">📎 .${ext}</span>`;
+          }
+        }
+
+        // 评语呈现
+        let feedbackHtml = `<span style="color:#94a3b8; font-size:12px;">待批阅指导</span>`;
+        if (item.feedback) {
+          feedbackHtml = `
+            <div style="background:#f8fafc; border-left:3px solid #2563eb; padding:6px 10px; border-radius:4px; font-size:12.5px; color:#1e293b; max-width:260px; word-break:break-word;">
+              💬 <strong>${escapeHtml(item.reviewer_name || "管理员")}：</strong>${escapeHtml(item.feedback)}
+            </div>
+          `;
+        }
+
+        // 操作集合
+        let actions = [];
+        if (hasPreviewPdf) {
+          actions.push(`<button class="btn btn-primary btn-sm" onclick="previewAdminIdeaPdf(${item.id})" style="font-size:12px; padding:4px 8px;">📄 在线查看PDF</button>`);
+        }
+        if (item.file_path) {
+          actions.push(`<a href="/api/daily-ideas/${item.id}/download?token=${encodeURIComponent(getToken() || "")}" class="btn btn-outline btn-sm" style="font-size:12px; padding:4px 8px;" download>📥 下载原件</a>`);
+        }
+        actions.push(`<button class="btn btn-outline btn-sm" onclick="openReviewDailyIdeaModal(${item.id})" style="font-size:12px; padding:4px 8px; border-color:#2563eb; color:#2563eb;">💬 评阅指导</button>`);
+        actions.push(`<button class="btn btn-danger btn-sm" onclick="deleteAdminIdea(${item.id})" style="font-size:12px; padding:4px 8px;">🗑️ 删除</button>`);
+
+        return `
+          <tr>
+            <td style="color:#64748b; font-size:13px;">${index + 1}</td>
+            <td>
+              <div style="font-weight:700; color:#0f172a; font-size:14px;">${escapeHtml(item.user_name)}</div>
+              <div style="font-size:12px; color:#64748b;">${escapeHtml(item.group_name ? `【${item.group_name}】` : "未分组")} · ${escapeHtml(item.className || "")}</div>
+            </td>
+            <td style="font-weight:600; color:#334155; font-size:13px; white-space:nowrap;">${escapeHtml(item.idea_date)}</td>
+            <td>
+              <div style="font-weight:700; color:#0f172a; font-size:14px; margin-bottom:2px;">${escapeHtml(item.title)}</div>
+              ${item.summary ? `<div style="font-size:12px; color:#64748b; line-height:1.5; max-width:280px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHtml(item.summary)}</div>` : ""}
+            </td>
+            <td><span class="badge badge-user" style="font-size:11px;">${escapeHtml(item.category || "创新设想")}</span></td>
+            <td>${fileBadge}</td>
+            <td>${statusBadge}</td>
+            <td>${feedbackHtml}</td>
+            <td><div style="display:flex; gap:6px; flex-wrap:wrap;">${actions.join("")}</div></td>
+          </tr>
+        `;
+      }).join('');
+    }
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="alert alert-danger">加载设想列表异常: ${e.message}</td></tr>`;
+  }
+}
+
+function resetAdminIdeasFilter() {
+  document.getElementById('ideas-scope-select').value = 'my_group';
+  document.getElementById('ideas-status-select').value = 'all';
+  document.getElementById('ideas-date-filter').value = '';
+  document.getElementById('ideas-keyword-filter').value = '';
+  loadAdminDailyIdeas();
+}
+
+// 在线查看设想 PDF (支持 Word 自动转 PDF 渲染)
+function previewAdminIdeaPdf(id) {
+  const idea = cachedDailyIdeas.find(i => i.id == id);
+  if (!idea) return;
+
+  const filename = idea.original_filename || `设想文档_${id}`;
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  const token = getToken();
+  const previewUrl = `/api/daily-ideas/${id}/preview-pdf?token=${encodeURIComponent(token || "")}`;
+  const downloadUrl = `/api/daily-ideas/${id}/download?token=${encodeURIComponent(token || "")}`;
+  const downloadPdfUrl = `/api/daily-ideas/${id}/download?token=${encodeURIComponent(token || "")}&format=pdf`;
+
+  document.getElementById('idea-admin-preview-filename').innerText = filename;
+  document.getElementById('idea-admin-download-link').href = downloadUrl;
+
+  const pdfBtn = document.getElementById('idea-admin-download-pdf-link');
+  const badge = document.getElementById('idea-admin-format-badge');
+
+  if (['doc', 'docx'].includes(ext)) {
+    if (badge) {
+      badge.style.display = 'inline-block';
+      badge.innerText = '⚡ Word 自动转 PDF 高清预览';
+    }
+    if (pdfBtn) {
+      pdfBtn.style.display = 'inline-flex';
+      pdfBtn.href = downloadPdfUrl;
+    }
+  } else {
+    if (badge) badge.style.display = 'none';
+    if (pdfBtn) pdfBtn.style.display = 'none';
+  }
+
+  const container = document.getElementById('idea-admin-preview-container');
+  container.innerHTML = `
+    <iframe src="${previewUrl}" style="width: 100%; min-height: 70vh; border: none; background: #fff;" onload="this.style.opacity='1';" onerror="document.getElementById('idea-admin-preview-container').innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ 预览加载失败，请尝试直接下载后查看</div>'"></iframe>
+  `;
+
+  openModal('modal-preview-idea-admin');
+}
+
+// 打开评阅批注弹窗
+function openReviewDailyIdeaModal(id) {
+  const idea = cachedDailyIdeas.find(i => i.id == id);
+  if (!idea) return;
+
+  currentReviewingIdeaId = id;
+  const summaryBox = document.getElementById('review-idea-summary-box');
+  summaryBox.innerHTML = `
+    <div style="font-size:15px; font-weight:700; color:#0f172a; margin-bottom:6px;">${escapeHtml(idea.title)}</div>
+    <div style="font-size:13px; color:#475569; margin-bottom:8px;">
+      <strong>提交人：</strong>${escapeHtml(idea.user_name)} (${escapeHtml(idea.className || "班级未填")}) · <strong>归属日期：</strong>${escapeHtml(idea.idea_date)} · <strong>领域：</strong>${escapeHtml(idea.category || "创新设想")}
+    </div>
+    ${idea.summary ? `<div style="font-size:13px; color:#334155; background:#fff; padding:10px; border-radius:6px; border:1px solid #e2e8f0; line-height:1.6;">${escapeHtml(idea.summary)}</div>` : "<div style='color:#94a3b8; font-size:13px;'>未填写摘要文字说明</div>"}
+  `;
+
+  // 默认评语与状态
+  const radios = document.getElementsByName('review_idea_status');
+  for (const r of radios) {
+    if (r.value === (idea.status === 'starred' ? 'starred' : 'reviewed')) {
+      r.checked = true;
+    }
+  }
+  document.getElementById('review-idea-feedback').value = idea.feedback || "创意设想创新点清晰明确，符合社团学术科研与创新孵化导向！";
+
+  openModal('modal-review-daily-idea');
+}
+
+// 提交设想评阅
+async function submitDailyIdeaReview(e) {
+  if (e) e.preventDefault();
+  if (!currentReviewingIdeaId) return;
+
+  const status = document.querySelector('input[name="review_idea_status"]:checked')?.value || 'reviewed';
+  const feedback = document.getElementById('review-idea-feedback').value;
+
+  const btn = document.getElementById('btn-submit-review-idea');
+  btn.disabled = true;
+  btn.innerText = "提交中...";
+
+  try {
+    const res = await apiRequest(`/daily-ideas/${currentReviewingIdeaId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ status, feedback })
+    });
+
+    if (res.success) {
+      showToast(res.message || '评阅批复成功！', 'success');
+      closeModal('modal-review-daily-idea');
+      await loadAdminDailyIdeas();
+    } else {
+      showToast(res.message || '评阅保存失败', 'error');
+    }
+  } catch (err) {
+    showToast('批阅异常: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "🚀 保存并提交批复";
+  }
+}
+
+// 删除设想记录
+async function deleteAdminIdea(id) {
+  if (!confirm('确定要彻底删除该设想记录及关联附件吗？')) return;
+
+  try {
+    const res = await apiRequest(`/daily-ideas/${id}`, { method: 'DELETE' });
+    if (res.success) {
+      showToast('已成功删除该设想记录', 'success');
+      await loadAdminDailyIdeas();
+    } else {
+      showToast(res.message || '删除失败', 'error');
+    }
+  } catch (e) {
+    showToast('删除异常: ' + e.message, 'error');
+  }
+}
+
 // 统一全局挂载管理后台核心交互函数，确保移动端内联事件 100% 灵敏
 if (typeof window !== 'undefined') {
   window.switchAdminTab = switchAdminTab;
@@ -2301,4 +2864,24 @@ if (typeof window !== 'undefined') {
   window.deleteSelectedMailLogs = deleteSelectedMailLogs;
   window.resetTemplateFields = resetTemplateFields;
   window.onRecipientSelectChanged = onRecipientSelectChanged;
+
+  window.loadAdminGroups = loadAdminGroups;
+  window.filterCurrentGroupMembers = filterCurrentGroupMembers;
+  window.switchAdminManagedGroup = switchAdminManagedGroup;
+  window.openSelectCandidatesModal = openSelectCandidatesModal;
+  window.loadGroupCandidates = loadGroupCandidates;
+  window.searchGroupCandidates = searchGroupCandidates;
+  window.toggleSelectAllCandidates = toggleSelectAllCandidates;
+  window.updateSelectedCandidatesCount = updateSelectedCandidatesCount;
+  window.submitAddGroupMembers = submitAddGroupMembers;
+  window.removeGroupMember = removeGroupMember;
+  window.openEditGroupModal = openEditGroupModal;
+  window.submitEditGroupInfo = submitEditGroupInfo;
+  window.loadAdminDailyIdeas = loadAdminDailyIdeas;
+  window.resetAdminIdeasFilter = resetAdminIdeasFilter;
+  window.previewAdminIdeaPdf = previewAdminIdeaPdf;
+  window.openReviewDailyIdeaModal = openReviewDailyIdeaModal;
+  window.submitDailyIdeaReview = submitDailyIdeaReview;
+  window.deleteAdminIdea = deleteAdminIdea;
+
 }

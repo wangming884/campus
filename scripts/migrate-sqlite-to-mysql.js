@@ -21,7 +21,10 @@ const tables = [
   'proposal_votes',
   'development_directions',
   'activity_categories',
-  'role_applications'
+  'role_applications',
+  'club_groups',
+  'club_group_members',
+  'daily_ideas'
 ];
 
 function quoteIdentifier(identifier) {

@@ -166,7 +166,7 @@ router.put('/role-applications/:id/review', authenticateToken, requireRole(['adm
         }
         if (targetUser.role === 'admin') {
           await execute(
-            "UPDATE role_applications SET status = 'approved', reviewer_id = ?, review_notes = ?, reviewed_at = NOW() WHERE id = ?",
+            "UPDATE role_applications SET status = 'approved', reviewer_id = ?, review_notes = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?",
             [req.user.id, '该用户已是管理员，无需重复升级。', req.params.id]
           );
           return res.json({ success: true, message: '该用户当前已是管理员' });
@@ -176,7 +176,7 @@ router.put('/role-applications/:id/review', authenticateToken, requireRole(['adm
     }
 
     await execute(
-      "UPDATE role_applications SET status = ?, reviewer_id = ?, review_notes = ?, reviewed_at = NOW() WHERE id = ?",
+      "UPDATE role_applications SET status = ?, reviewer_id = ?, review_notes = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?",
       [status, req.user.id, notes || '', req.params.id]
     );
 

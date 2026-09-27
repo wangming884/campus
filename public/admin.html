@@ -108,6 +108,15 @@
           <span class="nav-item-icon">👥</span>
           <span>用户与角色管理</span>
         </div>
+                <div class="nav-item" onclick="switchAdminTab('groups')" id="nav-tab-groups">
+          <span class="nav-item-icon">👥</span>
+          <span>我的分组与组员</span>
+        </div>
+        <div class="nav-item" onclick="switchAdminTab('daily-ideas')" id="nav-tab-daily-ideas">
+          <span class="nav-item-icon">💡</span>
+          <span style="flex-grow: 1;">每日一设阅览</span>
+          <span class="badge badge-status-pending" id="badge-daily-ideas-count" style="display: none; padding: 2px 6px; font-size: 11px;">0</span>
+        </div>
         <div class="nav-item" onclick="switchAdminTab('directions')" id="nav-tab-directions">
           <span class="nav-item-icon">🎯</span>
           <span>发展意向方向</span>
@@ -881,6 +890,151 @@
           </div>
         </div>
 
+        <!-- ==================== Tab: 小组与组员管理 ==================== -->
+        <div class="tab-pane" id="pane-groups">
+          <!-- 小组总览卡片 -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span id="admin-group-name">加载小组信息中...</span>
+                  <span class="badge badge-admin" id="admin-group-leader-badge">组长：您本人</span>
+                  <span class="badge badge-member" id="admin-group-member-count">0 人</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <select id="admin-group-switch-select" class="form-control" style="display: none; width: auto; font-size: 13px; padding: 6px 12px;" onchange="switchAdminManagedGroup(this.value)">
+                  <!-- 超管切换小组 -->
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="openEditGroupModal()">
+                  ✏️ 修改小组信息
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="openSelectCandidatesModal()">
+                  ➕ 选择/添加组员
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info" style="margin-bottom: 16px;">
+                👥 <strong>分组机制：</strong>管理员自动作为其小组的<strong>组长</strong>。组长可自由选择社团成员加入自己的小组进行协同指导，并优先批阅该组组员提交的<strong>“每日一设想”</strong>！
+              </div>
+              <div style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 16px;" id="admin-group-desc">
+                暂无小组简介
+              </div>
+
+              <!-- 组员列表 -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="font-weight: 700; color: #0f172a; font-size: 15px;">
+                  📋 当前组员花名册
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" class="form-control" id="group-member-search" placeholder="在当前组内搜索姓名/班级..." style="font-size: 13px; width: 220px;" oninput="filterCurrentGroupMembers(this.value)">
+                  <button class="btn btn-outline btn-sm" onclick="loadAdminGroups()">🔄 刷新</button>
+                </div>
+              </div>
+
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">序号</th>
+                      <th>姓名</th>
+                      <th>学院与专业班级</th>
+                      <th>电子邮箱</th>
+                      <th>QQ / 联系方式</th>
+                      <th>系统角色</th>
+                      <th>进组时间</th>
+                      <th style="width: 120px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="group-members-table-body">
+                    <tr><td colspan="8" style="text-align: center; padding: 30px; color: #64748b;">正在加载组员数据...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Tab: 每日一设阅览 ==================== -->
+        <div class="tab-pane" id="pane-daily-ideas">
+          <!-- 筛选与控制栏 -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-body" style="padding: 18px 24px;">
+              <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+                <div class="form-group" style="margin: 0; min-width: 150px;">
+                  <label class="form-label" style="font-size: 12px;">查阅范围</label>
+                  <select class="form-control" id="ideas-scope-select" onchange="loadAdminDailyIdeas()">
+                    <option value="my_group" selected>我的组员设想 (推荐)</option>
+                    <option value="all">全社团设想 (全量)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin: 0; min-width: 140px;">
+                  <label class="form-label" style="font-size: 12px;">评阅状态</label>
+                  <select class="form-control" id="ideas-status-select" onchange="loadAdminDailyIdeas()">
+                    <option value="all">全部状态</option>
+                    <option value="submitted">待查阅 (待批复)</option>
+                    <option value="reviewed">已查阅 (已回复)</option>
+                    <option value="starred">🌟 优秀精选设想</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="margin: 0; min-width: 140px;">
+                  <label class="form-label" style="font-size: 12px;">指定日期</label>
+                  <input type="date" class="form-control" id="ideas-date-filter" onchange="loadAdminDailyIdeas()">
+                </div>
+
+                <div class="form-group" style="margin: 0; flex: 1; min-width: 200px;">
+                  <label class="form-label" style="font-size: 12px;">模糊关键词搜索</label>
+                  <input type="text" class="form-control" id="ideas-keyword-filter" placeholder="搜索设想标题、摘要、成员姓名、班级..." onkeydown="if(event.key==='Enter') loadAdminDailyIdeas()">
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-primary" onclick="loadAdminDailyIdeas()">🔍 筛选查询</button>
+                  <button class="btn btn-outline" onclick="resetAdminIdeasFilter()">重置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 设想列表表格 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>💡 社员每日一设想审阅列表</span>
+                <span class="badge badge-admin" id="ideas-total-badge">0 篇</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span style="font-size: 12px; color: #64748b;">支持 Word 自动转 PDF 在线阅览</span>
+                <button class="btn btn-outline btn-sm" onclick="loadAdminDailyIdeas()">🔄 刷新列表</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">序号</th>
+                      <th>提交人与所属组</th>
+                      <th>设想日期</th>
+                      <th>创意标题与摘要</th>
+                      <th>领域分类</th>
+                      <th>附件文档</th>
+                      <th>评阅状态</th>
+                      <th>组长指导评语</th>
+                      <th style="width: 210px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="daily-ideas-table-body">
+                    <tr><td colspan="9" style="text-align: center; padding: 30px; color: #64748b;">正在加载设想数据...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -1247,6 +1401,152 @@
             <button type="submit" class="btn btn-primary" id="btn-submit-send-email">🚀 确认发送邮件</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- ==================== 选择组员模态框 ==================== -->
+  <div class="modal-overlay" id="modal-select-candidates">
+    <div class="modal-container" style="max-width: 800px; width: 95%;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">👥 选择组员加入我的小组</h3>
+          <div style="font-size: 12.5px; color: #64748b; margin-top: 4px;">勾选社团成员将其选入您的团队，选入后您将作为其指导组长</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-select-candidates')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+          <input type="text" class="form-control" id="candidates-search-input" placeholder="按姓名、班级、学院、邮箱搜索成员..." style="flex: 1; min-width: 200px;" oninput="searchGroupCandidates(this.value)">
+          <select class="form-control" id="candidates-filter-select" style="width: auto; min-width: 140px;" onchange="loadGroupCandidates()">
+            <option value="unassigned" selected>仅看未分配组员</option>
+            <option value="all">全量社团成员</option>
+          </select>
+        </div>
+
+        <div class="data-table-wrap" style="max-height: 50vh; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 42px;"><input type="checkbox" id="check-all-candidates" onchange="toggleSelectAllCandidates(this.checked)" aria-label="全选"></th>
+                <th>姓名</th>
+                <th>学院 / 班级</th>
+                <th>邮箱 / QQ</th>
+                <th>系统身份</th>
+                <th>当前所属小组</th>
+              </tr>
+            </thead>
+            <tbody id="candidates-table-body">
+              <tr><td colspan="6" style="text-align: center; padding: 30px;">正在加载候选成员...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 13px; color: #475569;">
+          已勾选 <strong id="selected-candidates-count" style="color: #2563eb;">0</strong> 位成员
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-select-candidates')">取消</button>
+          <button type="button" class="btn btn-primary" id="btn-submit-add-members" onclick="submitAddGroupMembers()">➕ 确认加入本组</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 编辑小组信息模态框 ==================== -->
+  <div class="modal-overlay" id="modal-edit-group">
+    <div class="modal-container" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ 编辑小组基本信息</h3>
+        <button class="modal-close" onclick="closeModal('modal-edit-group')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-group" onsubmit="submitEditGroupInfo(event)">
+          <div class="form-group">
+            <label class="form-label required">小组名称</label>
+            <input type="text" class="form-control" id="edit-group-name" required maxlength="100" placeholder="如：科技攻坚一组 / 创新实践小队">
+          </div>
+          <div class="form-group">
+            <label class="form-label">小组简介与职责定位</label>
+            <textarea class="form-control" id="edit-group-desc" rows="4" placeholder="介绍该小组的主要研讨方向、指导重点等..."></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-edit-group')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-edit-group">保存更改</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 每日一设指导与评阅模态框 ==================== -->
+  <div class="modal-overlay" id="modal-review-daily-idea">
+    <div class="modal-container" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3 class="modal-title">💡 每日一设指导与批阅</h3>
+        <button class="modal-close" onclick="closeModal('modal-review-daily-idea')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="review-idea-summary-box" style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; line-height: 1.8;">
+          <!-- 动态注入设想信息 -->
+        </div>
+
+        <form id="form-review-daily-idea" onsubmit="submitDailyIdeaReview(event)">
+          <div class="form-group">
+            <label class="form-label required">评阅结论</label>
+            <div style="display: flex; gap: 20px; margin-top: 6px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="review_idea_status" value="reviewed" checked>
+                <span>✅ 查阅通过 (已审阅)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="review_idea_status" value="starred">
+                <span>🌟 评定为优秀精选设想</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">组长批注评语与改进指导意见</label>
+            <textarea class="form-control" id="review-idea-feedback" rows="5" placeholder="在此输入给该成员的指导建议（如：工作原理创新点分析、专利交底书撰写方向、工艺选型或实物制作建议等）..."></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-review-daily-idea')">取消</button>
+            <button type="submit" class="btn btn-primary" id="btn-submit-review-idea">🚀 保存并提交批复</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 每日一设在线查看 PDF 弹窗 (管理员端) ==================== -->
+  <div class="modal-overlay" id="modal-preview-idea-admin">
+    <div class="modal-container" style="max-width: 960px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 class="modal-title">📄 在线查看设想 PDF</h3>
+          <span id="idea-admin-format-badge" class="badge badge-admin" style="font-size: 11.5px;">⚡ Word 自动转 PDF</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 13px; color: var(--text-muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="idea-admin-preview-filename"></span>
+          <a class="btn btn-outline btn-sm" id="idea-admin-download-link" download>📥 下载原件</a>
+          <a class="btn btn-primary btn-sm" id="idea-admin-download-pdf-link" style="display:none;" download>📄 下载PDF</a>
+          <button class="modal-close" onclick="closeModal('modal-preview-idea-admin')" style="position: static; font-size: 22px; line-height: 1; cursor: pointer; background: none; border: none; color: #64748b;">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 0; min-height: 65vh; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+        <div id="idea-admin-preview-container" style="width: 100%; height: 100%;">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">正在加载文档预览...</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 12px; color: var(--text-muted);">
+          💡 支持 Word 与 PDF 在线免下载阅览；系统已自动将 Word 渲染为标准 PDF 呈现
+        </div>
+        <button class="btn btn-outline" onclick="closeModal('modal-preview-idea-admin')">关闭</button>
       </div>
     </div>
   </div>

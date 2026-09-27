@@ -8,9 +8,12 @@ const { authenticateToken, requireRole } = require('../middleware/auth');
 
 function decodeUploadFilename(filename) {
   if (!filename) return '';
-  if (!/[\u00c0-\u00ff]/.test(filename)) return filename;
-  const decoded = Buffer.from(filename, 'latin1').toString('utf8');
-  return decoded.includes('\ufffd') ? filename : decoded;
+  if (/[\u4e00-\u9fa5]/.test(filename)) return filename;
+  try {
+    const decoded = Buffer.from(filename, 'latin1').toString('utf8');
+    if (/[\u4e00-\u9fa5]/.test(decoded) && !decoded.includes('\ufffd')) return decoded;
+  } catch (e) {}
+  return filename;
 }
 
 const aboutFileStorage = multer.diskStorage({

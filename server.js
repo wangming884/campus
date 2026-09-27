@@ -17,6 +17,8 @@ const messageRoutes = require('./src/routes/messages');
 const proposalRoutes = require('./src/routes/proposals');
 const directionsRoutes = require('./src/routes/directions');
 const categoriesRoutes = require('./src/routes/categories');
+const groupRoutes = require('./src/routes/groups');
+const dailyIdeaRoutes = require('./src/routes/dailyIdeas');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,6 +47,8 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/directions', directionsRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/daily-ideas', dailyIdeaRoutes);
 
 // 多独立网页路由
 app.get('/', (req, res) => {

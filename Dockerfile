@@ -19,7 +19,7 @@ RUN npm config set registry https://registry.npmmirror.com && \
 COPY . .
 
 # 创建必要的上传与数据持久化目录
-RUN mkdir -p uploads/templates uploads/submissions data
+RUN mkdir -p uploads/templates uploads/submissions uploads/daily_ideas uploads/club data
 
 EXPOSE 3000
 

@@ -71,6 +71,10 @@
           <span class="nav-item-icon">💬</span>
           <span>社内交流留言</span>
         </div>
+                <div class="nav-item" onclick="switchProfileTab('daily-ideas')" id="nav-tab-daily-ideas">
+          <span class="nav-item-icon">💡</span>
+          <span>每日一设想</span>
+        </div>
         <div class="nav-item" onclick="switchProfileTab('notices')" id="nav-tab-notices">
           <span class="nav-item-icon">🔒</span>
           <span>专属规章通知</span>
@@ -418,6 +422,113 @@
           </div>
         </div>
 
+        <!-- ==================== Tab 7: 每日一设想 ==================== -->
+        <div class="tab-pane" id="pane-daily-ideas">
+          <!-- 小组归属与组长信息卡片 -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-body" id="my-group-status-banner" style="padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="font-size: 36px;">👥</div>
+                <div>
+                  <div style="font-size: 16px; font-weight: 700; color: #0f172a;" id="banner-group-title">加载小组信息中...</div>
+                  <div style="font-size: 13px; color: #64748b; margin-top: 4px;" id="banner-group-desc">正在同步组长与团队分配...</div>
+                </div>
+              </div>
+              <div id="banner-group-extra" style="font-size: 13px; color: #475569;"></div>
+            </div>
+          </div>
+
+          <!-- 提交设想表单卡片 -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <div class="card-title">
+                <span>✍️ 提交每日一设想</span>
+                <span class="badge badge-member" style="font-size: 11px;">激发创新</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info" style="margin-bottom: 20px;">
+                💡 <strong>特别提醒：</strong>支持上传 Word（<code>.doc</code> / <code>.docx</code>）或 PDF 文档。若上传 Word 文档，系统将<strong>自动转换为高清 PDF</strong>，方便组长与管理员在电脑或手机上直接在线免下载查看与指导！
+              </div>
+
+              <form id="form-submit-daily-idea" onsubmit="handleSubmitDailyIdea(event)">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label required">设想标题 / 创意名称</label>
+                    <input type="text" class="form-control" id="idea-title" placeholder="如：一种基于微控制器的校园节能灯控方案" required maxlength="200">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label required">设想归属日期</label>
+                    <input type="date" class="form-control" id="idea-date" required>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">创新领域 / 分类</label>
+                    <select class="form-control" id="idea-category">
+                      <option value="机械结构与智能硬件">机械结构与智能硬件</option>
+                      <option value="电子信息与嵌入式">电子信息与嵌入式</option>
+                      <option value="软件系统与算法设计">软件系统与算法设计</option>
+                      <option value="校园生活创意与实用新型">校园生活创意与实用新型</option>
+                      <option value="新材料与环保节能">新材料与环保节能</option>
+                      <option value="其他创新与概念设想" selected>其他创新与概念设想</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">上传设想附件文档 (推荐 Word 或 PDF)</label>
+                    <input type="file" class="form-control" id="idea-file" accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,.zip,.txt,.xlsx,.xls">
+                    <div style="font-size: 11.5px; color: #64748b; margin-top: 4px;">Word 文档提交后将自动转成 PDF 供组长在线阅览</div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">设想摘要与创新点说明</label>
+                  <textarea class="form-control" id="idea-summary" rows="3" placeholder="请简述该设想解决的痛点问题、创新点、基本工作原理或技术要点..."></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+                  <button type="submit" class="btn btn-primary" id="btn-submit-daily-idea">
+                    🚀 确认提交今日设想
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- 历史设想记录卡片 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>📋 我的历史设想记录</span>
+                <span class="badge badge-admin" id="my-ideas-count-badge">0 篇</span>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="loadMyDailyIdeas()">🔄 刷新列表</button>
+            </div>
+            <div class="card-body">
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 50px;">序号</th>
+                      <th>日期</th>
+                      <th>设想标题</th>
+                      <th>类别</th>
+                      <th>附件文档</th>
+                      <th>查阅状态</th>
+                      <th>组长评语与反馈</th>
+                      <th style="width: 170px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="my-daily-ideas-tbody">
+                    <tr><td colspan="8" style="text-align: center; padding: 30px; color: #64748b;">正在加载设想数据...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -571,5 +682,35 @@
   <!-- 共享交互库 -->
   <script src="/js/api.js"></script>
   <script src="/js/profile.js"></script>
+
+  <!-- 4. 每日一设在线预览 PDF 弹窗 -->
+  <div class="modal-overlay" id="modal-preview-idea">
+    <div class="modal-container" style="max-width: 960px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 class="modal-title">📄 在线查看设想文档</h3>
+          <span id="idea-preview-badge" class="badge badge-member" style="font-size: 11.5px;">⚡ Word自动转PDF</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 13px; color: var(--text-muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="idea-preview-filename"></span>
+          <a class="btn btn-outline btn-sm" id="idea-preview-download-link" download>📥 下载原件</a>
+          <a class="btn btn-primary btn-sm" id="idea-preview-download-pdf-link" style="display:none;" download>📄 下载PDF</a>
+          <button class="modal-close" onclick="closeModal('modal-preview-idea')" style="position: static; font-size: 22px; line-height: 1; cursor: pointer; background: none; border: none; color: #64748b;">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 0; min-height: 65vh; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+        <div id="idea-preview-container" style="width: 100%; height: 100%;">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">正在加载文档预览...</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 12px; color: var(--text-muted);">
+          💡 支持 Word 与 PDF 在线高清渲染；Word 文档已自动转换为标准 PDF
+        </div>
+        <button class="btn btn-outline" onclick="closeModal('modal-preview-idea')">关闭</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

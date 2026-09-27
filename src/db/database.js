@@ -9,7 +9,8 @@ const uploadsDir = path.join(__dirname, '../../uploads');
 const templatesDir = path.join(uploadsDir, 'templates');
 const submissionsDir = path.join(uploadsDir, 'submissions');
 const clubFilesDir = path.join(uploadsDir, 'club');
-[uploadsDir, templatesDir, submissionsDir, clubFilesDir].forEach(dir => {
+const dailyIdeasDir = path.join(uploadsDir, 'daily_ideas');
+[uploadsDir, templatesDir, submissionsDir, clubFilesDir, dailyIdeasDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -328,6 +329,71 @@ async function createMySQLTables() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS club_groups (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      leader_id INT NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_leader_id (leader_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS club_group_members (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      group_id INT NOT NULL,
+      user_id INT NOT NULL,
+      joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_group_user (group_id, user_id),
+      KEY idx_user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_ideas (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      user_name VARCHAR(100) NOT NULL,
+      title VARCHAR(200) NOT NULL,
+      idea_date DATE NOT NULL,
+      category VARCHAR(100) DEFAULT '创新设想',
+      summary TEXT,
+      file_path TEXT,
+      original_filename VARCHAR(255),
+      file_size INT DEFAULT 0,
+      pdf_path TEXT,
+      group_id INT DEFAULT NULL,
+      status VARCHAR(50) DEFAULT 'submitted',
+      feedback TEXT,
+      reviewer_id INT DEFAULT NULL,
+      reviewer_name VARCHAR(100) DEFAULT NULL,
+      reviewed_at DATETIME DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_user_id (user_id),
+      KEY idx_idea_date (idea_date),
+      KEY idx_group_id (group_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  // 自动升级 daily_ideas 文件路径为 TEXT 格式（防止超长路径溢出）
+  try {
+    const [cols] = await pool.query(`
+      SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'daily_ideas' AND COLUMN_NAME IN ('file_path', 'pdf_path')
+    `, [process.env.DB_NAME || 'campus_club']);
+    for (const col of cols) {
+      if (col.DATA_TYPE === 'varchar') {
+        await pool.query(`ALTER TABLE daily_ideas MODIFY COLUMN ${col.COLUMN_NAME} TEXT;`);
+        console.log(`[MySQL] ✅ 已为 daily_ideas 表扩容 ${col.COLUMN_NAME} 字段为 TEXT 类型`);
+      }
+    }
+  } catch (err) {}
+
   // 自动为历史版本增加 submission_pdf_path 字段
   try {
     const [cols] = await pool.query(`
@@ -684,9 +750,13 @@ async function getOne(sql, params = []) {
 async function execute(sql, params = []) {
   if (isMySQL && pool) {
     const [result] = await pool.query(sql, params);
+    const id = Number(result.insertId);
+    const affected = Number(result.affectedRows);
     return {
-      lastInsertRowid: result.insertId,
-      changes: result.affectedRows
+      lastInsertRowid: id,
+      insertId: id,
+      changes: affected,
+      affectedRows: affected
     };
   }
   return sqliteExecute(sql, params);
@@ -885,6 +955,43 @@ function initFallbackSQLite() {
       reviewed_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS club_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      leader_id INTEGER NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS club_group_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(group_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS daily_ideas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      user_name TEXT NOT NULL,
+      title TEXT NOT NULL,
+      idea_date TEXT NOT NULL,
+      category TEXT DEFAULT '创新设想',
+      summary TEXT,
+      file_path TEXT,
+      original_filename TEXT,
+      file_size INTEGER DEFAULT 0,
+      pdf_path TEXT,
+      group_id INTEGER DEFAULT NULL,
+      status TEXT DEFAULT 'submitted',
+      feedback TEXT,
+      reviewer_id INTEGER DEFAULT NULL,
+      reviewer_name TEXT DEFAULT NULL,
+      reviewed_at DATETIME DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   try {
@@ -954,29 +1061,40 @@ function initFallbackSQLite() {
   }
 }
 
+function normalizeSqlForSqlite(sql) {
+  if (!sql) return "";
+  return sql
+    .replace(/`key`/g, "key")
+    .replace(/`value`/g, "value")
+    .replace(/\bNOW\(\)/gi, "CURRENT_TIMESTAMP");
+}
+
 function sqliteQuery(sql, params = []) {
   if (!sqliteDb) initFallbackSQLite();
-  // 替换反引号为标准标识符
-  const cleanSql = sql.replace(/`key`/g, 'key').replace(/`value`/g, 'value');
+  const cleanSql = normalizeSqlForSqlite(sql);
   const stmt = sqliteDb.prepare(cleanSql);
   return stmt.all(...params);
 }
 
 function sqliteGetOne(sql, params = []) {
   if (!sqliteDb) initFallbackSQLite();
-  const cleanSql = sql.replace(/`key`/g, 'key').replace(/`value`/g, 'value');
+  const cleanSql = normalizeSqlForSqlite(sql);
   const stmt = sqliteDb.prepare(cleanSql);
   return stmt.get(...params) || null;
 }
 
 function sqliteExecute(sql, params = []) {
   if (!sqliteDb) initFallbackSQLite();
-  const cleanSql = sql.replace(/`key`/g, 'key').replace(/`value`/g, 'value');
+  const cleanSql = normalizeSqlForSqlite(sql);
   const stmt = sqliteDb.prepare(cleanSql);
   const info = stmt.run(...params);
+  const id = Number(info.lastInsertRowid);
+  const chg = Number(info.changes);
   return {
-    lastInsertRowid: Number(info.lastInsertRowid),
-    changes: info.changes
+    lastInsertRowid: id,
+    insertId: id,
+    changes: chg,
+    affectedRows: chg
   };
 }
 
@@ -1040,5 +1158,6 @@ module.exports = {
   templatesDir,
   submissionsDir,
   clubFilesDir,
+  dailyIdeasDir,
   cleanupReviewedSubmissions
 };

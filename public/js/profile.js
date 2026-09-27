@@ -7,6 +7,8 @@ let cachedApplications = [];
 let cachedProposals = [];
 let cachedMessages = [];
 let cachedNotices = [];
+let cachedMyDailyIdeas = [];
+let cachedMyGroup = null;
 let activeTab = 'overview';
 
 // HTML 转义辅助函数
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 根据 URL Hash 决定初始激活的 Tab，默认 overview
   const hash = window.location.hash.replace('#', '');
-  const validTabs = ['overview', 'application', 'profile', 'proposals', 'messages', 'notices'];
+  const validTabs = ['overview', 'application', 'profile', 'proposals', 'messages', 'notices', 'daily-ideas'];
   if (validTabs.includes(hash)) {
     activeTab = hash;
   }
@@ -65,7 +67,9 @@ async function refreshProfileData() {
     loadMyApplications(),
     loadProposals(),
     loadMessages(),
-    loadMemberNotices()
+    loadMemberNotices(),
+    loadMyGroupInfo(),
+    loadMyDailyIdeas()
   ]);
   renderOverviewPane();
 }
@@ -124,7 +128,8 @@ const TAB_TITLES = {
   profile: { title: '👤 个人资料与账号安全', subtitle: '维护学籍、学院班级与联络方式' },
   proposals: { title: '🎯 活动共创提案与全员表决', subtitle: '民主发起活动倡议、点赞投票与官方决议公示' },
   messages: { title: '💬 社内交流互动留言板', subtitle: '社员技术交流、生活趣事与管理员官方回复' },
-  notices: { title: '🔒 社内专属通知与规章备忘', subtitle: '内部规章制度、例会备忘与工位实验规范' }
+  notices: { title: '🔒 社内专属通知与规章备忘', subtitle: '内部规章制度、例会备忘与工位实验规范' },
+  'daily-ideas': { title: '💡 每日一设想与创新记录', subtitle: '提交每日创新设计，Word 文档自动转 PDF 供组长在线阅览指导' }
 };
 
 function switchProfileTab(tabKey) {
@@ -365,6 +370,10 @@ function renderQuickActions() {
       <div><div style="${titleStyle}">💡 发起活动共创</div><div style="${descStyle}">民主提议技术沙龙</div></div>
     </button>
 
+
+    <button class="btn btn-outline" style="${btnStyle}" onclick="switchProfileTab('daily-ideas')">
+      <div><div style="${titleStyle}">💡 提交每日设想</div><div style="${descStyle}">Word自动转PDF在线审阅</div></div>
+    </button>
     <button class="btn btn-outline" style="${btnStyle}" onclick="switchProfileTab('messages')">
       <div><div style="${titleStyle}">💬 社内畅聊提问</div><div style="${descStyle}">向管理团队提出疑问</div></div>
     </button>
@@ -1037,6 +1046,254 @@ async function loadMemberNotices() {
     container.innerHTML = `<div class="alert alert-danger">加载通知失败</div>`;
   }
 }
+
+// ==================== 每日一设与小组归属逻辑 ====================
+
+// 加载社员自身所属的小组与组长信息
+async function loadMyGroupInfo() {
+  const bannerTitle = document.getElementById('banner-group-title');
+  const bannerDesc = document.getElementById('banner-group-desc');
+  const bannerExtra = document.getElementById('banner-group-extra');
+  if (!bannerTitle) return;
+
+  try {
+    const res = await apiRequest('/groups/my-group');
+    if (res.success && res.group) {
+      cachedMyGroup = res.group;
+      const g = res.group;
+      if (res.isLeader) {
+        bannerTitle.innerHTML = `🏆 您负责的小组：<span style="color:#2563eb;">${escapeHtml(g.name)}</span> <span class="badge badge-admin">您是组长</span>`;
+        bannerDesc.innerText = `成员数：${(res.members || []).length} 人 | ${g.description || "日常项目研讨与设想评阅小组"}`;
+        bannerExtra.innerHTML = `<a href="/admin#groups" class="btn btn-primary btn-sm">👥 进入组员管理后台</a>`;
+      } else {
+        bannerTitle.innerHTML = `👥 所属小组：<span style="color:#2563eb;">${escapeHtml(g.name)}</span>`;
+        bannerDesc.innerHTML = `<strong>组长：</strong>${escapeHtml(g.leader_name || "管理员")} | <strong>联系邮箱：</strong>${escapeHtml(g.leader_email || "未公开")} | <strong>组长QQ：</strong>${escapeHtml(g.leader_qq || "未填写")}`;
+        bannerExtra.innerHTML = `<span class="badge badge-member">团队成员共 ${(res.members || []).length} 人</span>`;
+      }
+    } else {
+      bannerTitle.innerText = "ℹ️ 暂未分配至任何社团小组";
+      bannerDesc.innerText = "管理员（组长）将在管理后台分配您的所属队伍；您提交的每日一设想将由管理团队统一查阅与指导。";
+      bannerExtra.innerHTML = `<span class="badge badge-user">待分配小组</span>`;
+    }
+  } catch (e) {
+    if (bannerTitle) bannerTitle.innerText = "小组信息获取失败";
+    if (bannerDesc) bannerDesc.innerText = e.message;
+  }
+}
+
+// 加载当前社员提交的每日一设记录
+async function loadMyDailyIdeas() {
+  const tbody = document.getElementById('my-daily-ideas-tbody');
+  const countBadge = document.getElementById('my-ideas-count-badge');
+  const dateInput = document.getElementById('idea-date');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  if (!tbody) return;
+
+  try {
+    const res = await apiRequest('/daily-ideas/my');
+    if (res.success && Array.isArray(res.data)) {
+      cachedMyDailyIdeas = res.data;
+      if (countBadge) countBadge.innerText = `${res.data.length} 篇`;
+
+      if (res.data.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 40px; color: #64748b;">
+              <div style="font-size: 36px; margin-bottom: 8px;">💡</div>
+              <div style="font-size: 15px; font-weight: 600; color: #1e293b;">暂未提交过每日一设想</div>
+              <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">在上方表单提交您的创新点子，支持上传 Word 自动转 PDF 供组长在线审阅！</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = res.data.map((item, index) => {
+        let statusBadge = `<span class="badge badge-status-pending">待查阅</span>`;
+        if (item.status === 'reviewed') {
+          statusBadge = `<span class="badge badge-status-approved">已查阅</span>`;
+        } else if (item.status === 'starred') {
+          statusBadge = `<span class="badge badge-super">🌟 优秀精选</span>`;
+        }
+
+        // 文件类型解析
+        let fileBadge = `<span style="color:#94a3b8; font-size:12px;">无附件</span>`;
+        let hasPreviewPdf = false;
+        if (item.file_path) {
+          const ext = (item.original_filename || item.file_path).split('.').pop().toLowerCase();
+          if (['doc', 'docx'].includes(ext)) {
+            fileBadge = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:11px;">📝 Word (转PDF)</span>`;
+            hasPreviewPdf = true;
+          } else if (ext === 'pdf') {
+            fileBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-size:11px;">📄 PDF</span>`;
+            hasPreviewPdf = true;
+          } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            fileBadge = `<span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size:11px;">🖼️ 图片</span>`;
+            hasPreviewPdf = true;
+          } else {
+            fileBadge = `<span class="badge badge-user" style="font-size:11px;">📎 .${ext}</span>`;
+          }
+        }
+
+        // 组长反馈
+        let feedbackHtml = `<span style="color:#94a3b8; font-size:12px;">暂无评语</span>`;
+        if (item.feedback) {
+          feedbackHtml = `
+            <div style="background:#f8fafc; border-left:3px solid #2563eb; padding:6px 10px; border-radius:4px; font-size:12.5px; color:#1e293b; max-width:240px; word-break:break-word;">
+              💬 <strong>${escapeHtml(item.reviewer_name || "组长")}：</strong>${escapeHtml(item.feedback)}
+            </div>
+          `;
+        }
+
+        // 操作按钮
+        let actions = [];
+        if (hasPreviewPdf) {
+          actions.push(`<button class="btn btn-primary btn-sm" onclick="previewMyIdeaPdf(${item.id})" style="font-size:12px; padding:4px 8px;">📄 查看PDF</button>`);
+        }
+        if (item.file_path) {
+          actions.push(`<a href="/api/daily-ideas/${item.id}/download?token=${encodeURIComponent(getToken() || "")}" class="btn btn-outline btn-sm" style="font-size:12px; padding:4px 8px;" download>📥 下载</a>`);
+        }
+        if (item.status === 'submitted') {
+          actions.push(`<button class="btn btn-danger btn-sm" onclick="deleteMyIdea(${item.id})" style="font-size:12px; padding:4px 8px;">🗑️ 撤回</button>`);
+        }
+
+        return `
+          <tr>
+            <td style="color:#64748b; font-size:13px;">${index + 1}</td>
+            <td style="font-weight:600; color:#334155; font-size:13px; white-space:nowrap;">${escapeHtml(item.idea_date)}</td>
+            <td>
+              <div style="font-weight:700; color:#0f172a; font-size:14px; margin-bottom:2px;">${escapeHtml(item.title)}</div>
+              ${item.summary ? `<div style="font-size:12px; color:#64748b; line-height:1.5; max-width:280px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHtml(item.summary)}</div>` : ""}
+            </td>
+            <td><span class="badge badge-user" style="font-size:11px;">${escapeHtml(item.category || "创新设想")}</span></td>
+            <td>${fileBadge}</td>
+            <td>${statusBadge}</td>
+            <td>${feedbackHtml}</td>
+            <td><div style="display:flex; gap:6px; flex-wrap:wrap;">${actions.join("")}</div></td>
+          </tr>
+        `;
+      }).join('');
+    }
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="alert alert-danger">加载设想列表异常: ${e.message}</td></tr>`;
+  }
+}
+
+// 提交每日一设
+async function handleSubmitDailyIdea(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-submit-daily-idea');
+  const title = document.getElementById('idea-title').value;
+  const ideaDate = document.getElementById('idea-date').value;
+  const category = document.getElementById('idea-category').value;
+  const summary = document.getElementById('idea-summary').value;
+  const fileInput = document.getElementById('idea-file');
+
+  if (!title || !title.trim()) {
+    showToast('请填写设想标题', 'warning');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('title', title.trim());
+  formData.append('idea_date', ideaDate || new Date().toISOString().split('T')[0]);
+  formData.append('category', category);
+  formData.append('summary', summary ? summary.trim() : '');
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    formData.append('file', fileInput.files[0]);
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="loading-spinner" style="display:inline-block; vertical-align:middle; width:14px; height:14px; margin-right:6px;"></span>正在提交并自动转码...`;
+
+  try {
+    const token = getToken();
+    const response = await fetch('/api/daily-ideas', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+    const res = await response.json();
+
+    if (res.success) {
+      showToast(res.message || '每日一设想提交成功！', 'success', 4500);
+      document.getElementById('form-submit-daily-idea').reset();
+      const dateInput = document.getElementById('idea-date');
+      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+      await loadMyDailyIdeas();
+    } else {
+      showToast(res.message || '提交失败，请重试', 'error');
+    }
+  } catch (err) {
+    showToast('网络异常: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `🚀 确认提交今日设想`;
+  }
+}
+
+// 在线查看设想 PDF 文档
+function previewMyIdeaPdf(id) {
+  const idea = cachedMyDailyIdeas.find(i => i.id == id);
+  if (!idea) return;
+
+  const filename = idea.original_filename || `设想文档_${id}`;
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  const token = getToken();
+  const previewUrl = `/api/daily-ideas/${id}/preview-pdf?token=${encodeURIComponent(token || "")}`;
+  const downloadUrl = `/api/daily-ideas/${id}/download?token=${encodeURIComponent(token || "")}`;
+  const downloadPdfUrl = `/api/daily-ideas/${id}/download?token=${encodeURIComponent(token || "")}&format=pdf`;
+
+  document.getElementById('idea-preview-filename').innerText = filename;
+  document.getElementById('idea-preview-download-link').href = downloadUrl;
+
+  const pdfBtn = document.getElementById('idea-preview-download-pdf-link');
+  const badge = document.getElementById('idea-preview-badge');
+
+  if (['doc', 'docx'].includes(ext)) {
+    if (badge) {
+      badge.style.display = 'inline-block';
+      badge.innerText = '⚡ Word 自动转 PDF 高清预览';
+    }
+    if (pdfBtn) {
+      pdfBtn.style.display = 'inline-flex';
+      pdfBtn.href = downloadPdfUrl;
+    }
+  } else {
+    if (badge) badge.style.display = 'none';
+    if (pdfBtn) pdfBtn.style.display = 'none';
+  }
+
+  const container = document.getElementById('idea-preview-container');
+  container.innerHTML = `
+    <iframe src="${previewUrl}" style="width: 100%; min-height: 70vh; border: none; background: #fff;" onload="this.style.opacity='1';" onerror="document.getElementById('idea-preview-container').innerHTML='<div style=text-align:center;padding:40px;color:var(--danger)>❌ 预览加载失败，请尝试直接下载后查看</div>'"></iframe>
+  `;
+
+  openModal('modal-preview-idea');
+}
+
+// 撤回/删除设想
+async function deleteMyIdea(id) {
+  if (!confirm('确定要撤回或删除该设想记录吗？撤回后文件也将被同步清理。')) return;
+  try {
+    const res = await apiRequest(`/daily-ideas/${id}`, { method: 'DELETE' });
+    if (res.success) {
+      showToast(res.message || '已成功撤回该设想', 'success');
+      await loadMyDailyIdeas();
+    } else {
+      showToast(res.message || '操作失败', 'error');
+    }
+  } catch (e) {
+    showToast('删除失败: ' + e.message, 'error');
+  }
+}
+
 // 统一全局挂载工作台交互函数，确保移动端内联事件 100% 灵敏无报错
 if (typeof window !== 'undefined') {
   window.toggleMobileSidebar = toggleMobileSidebar;
@@ -1044,4 +1301,9 @@ if (typeof window !== 'undefined') {
   window.switchProfileTab = switchProfileTab;
   window.refreshProfileData = refreshProfileData;
   if (typeof openNewProposalModal === 'function') window.openNewProposalModal = openNewProposalModal;
+  window.loadMyGroupInfo = loadMyGroupInfo;
+  window.loadMyDailyIdeas = loadMyDailyIdeas;
+  window.handleSubmitDailyIdea = handleSubmitDailyIdea;
+  window.previewMyIdeaPdf = previewMyIdeaPdf;
+  window.deleteMyIdea = deleteMyIdea;
 }
