@@ -75,8 +75,8 @@ async function sendEmail({ to, toName, subject, html, text }) {
     await transporter.verify();
 
     const info = await transporter.sendMail({
-      from: fromAddress,
-      to,
+      from: { name: senderName, address: fromEmail },
+      to: toName ? { name: toName, address: to } : to,
       subject,
       text: text || '请使用支持HTML的邮件客户端查看',
       html

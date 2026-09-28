@@ -28,6 +28,7 @@ async function initDatabase(retries = 5, delay = 3000) {
   if (process.env.USE_SQLITE === 'true') {
     console.log('[DB] 🔧 已配置为直接使用本地嵌入式数据库（SQLite）模式');
     initFallbackSQLite();
+    await autoHealMojibake();
     return false;
   }
 
@@ -70,6 +71,7 @@ async function initDatabase(retries = 5, delay = 3000) {
       // 4. 创建表结构与预置数据
       await createMySQLTables();
       await seedMySQLData();
+      await autoHealMojibake();
       return true;
     } catch (err) {
       console.warn(`[DB] 第 ${i}/${retries} 次连接 MySQL 失败: ${err.message}`);
@@ -82,6 +84,7 @@ async function initDatabase(retries = 5, delay = 3000) {
   // 若重试完毕仍未连上 MySQL（通常发生在本地未启动 Docker 容器时），启用嵌入式引擎应急
   console.warn(`[DB] ⚠️ 未能连接到外部 MySQL，正在自动启用本地嵌入式数据库应急运行...`);
   initFallbackSQLite();
+  await autoHealMojibake();
   return false;
 }
 
@@ -528,6 +531,20 @@ async function seedMySQLData() {
     ]);
   }
 
+  // 3.1 初始化社团介绍文件资料
+  const [docRows] = await pool.query('SELECT id FROM club_documents WHERE id = 1');
+  if (docRows.length === 0) {
+    const introFile = path.join(clubFilesDir, 'club-introduction_1789314335845.pdf');
+    if (fs.existsSync(introFile)) {
+      const stats = fs.statSync(introFile);
+      await pool.query(`
+        INSERT INTO club_documents (id, title, filename, filepath, mime_type, size, uploaded_by)
+        VALUES (1, '2026招新手册.pdf', '2026招新手册.pdf', ?, 'application/pdf', ?, 1)
+      `, [introFile, stats.size]);
+      console.log('[MySQL] ✅ 已自动初始化社团介绍文件资料 (2026招新手册.pdf)');
+    }
+  }
+
   // 4. 初始化默认通知公告
   const [noticeCount] = await pool.query('SELECT COUNT(*) as count FROM notices');
   if (noticeCount[0].count === 0) {
@@ -609,22 +626,12 @@ async function seedMySQLData() {
         content: '社团发展历程编年史时间轴（2018-2026）、四大核心文化价值观卡片与国家级/省部级荣誉墙。'
       },
       {
-        title: '部门架构',
-        slug: 'departments',
-        path: '/departments',
-        is_system: 1,
-        is_nav_visible: 1,
-        sort_order: 3,
-        seo_description: '5大核心职能部门全景解析、技能图谱与招募画像。',
-        content: '技术研发部、视觉文创部、活动策划部、公关外联部、组织实践部等5大职能部门全景图谱。'
-      },
-      {
         title: '纳新通道',
         slug: 'recruitment',
         path: '/recruitment',
         is_system: 1,
         is_nav_visible: 1,
-        sort_order: 4,
+        sort_order: 3,
         seo_description: '社团春季/秋季纳新流程、官方申请表模板下载与在线提交入社。',
         content: '官方申请表模板一键下载卡片、在线拖拽提交申请表表单与招新常见问题解答 FAQ。'
       },
@@ -634,7 +641,7 @@ async function seedMySQLData() {
         path: '/notices',
         is_system: 1,
         is_nav_visible: 1,
-        sort_order: 5,
+        sort_order: 4,
         seo_description: '社团最新全校公开通告、技术研讨会日程与社员内部专享规章。',
         content: '分类筛选标签页（全部、全校公开、社团成员专享）、关键词搜索与详情模态弹窗阅读。'
       },
@@ -644,7 +651,7 @@ async function seedMySQLData() {
         path: '/contact',
         is_system: 1,
         is_nav_visible: 1,
-        sort_order: 6,
+        sort_order: 5,
         seo_description: '工作室坐标、官方邮箱、迎新QQ群与在线咨询合作。',
         content: '四大联络渠道卡片、在线留言咨询表单与线下活动中心拜访须知。'
       }
@@ -1147,6 +1154,60 @@ async function cleanupReviewedSubmissions() {
 
   if (cleaned > 0) console.log(`[Cleanup] 已自动清理 ${cleaned} 份超过 1 天的已审阅申请附件`);
   return cleaned;
+}
+
+
+/**
+ * 自动修复数据库历史存量数据中的 Windows-1252 / Latin-1 乱码 (自愈机制)
+ */
+async function autoHealMojibake() {
+  try {
+    const { fixMojibake } = require('../utils/filenameFixer');
+
+    // 1. 修复 club_documents 乱码
+    const clubDocs = await query('SELECT id, title, filename FROM club_documents');
+    for (const doc of clubDocs) {
+      const fixedTitle = fixMojibake(doc.title);
+      const fixedFilename = fixMojibake(doc.filename);
+      if (fixedTitle !== doc.title || fixedFilename !== doc.filename) {
+        await execute('UPDATE club_documents SET title = ?, filename = ? WHERE id = ?', [fixedTitle, fixedFilename, doc.id]);
+        console.log(`[DB AutoHeal] 成功自愈修复 club_documents (ID: ${doc.id}) 乱码: ${fixedTitle}`);
+      }
+    }
+
+    // 2. 修复 application_templates 乱码
+    const templates = await query('SELECT id, title, filename FROM application_templates');
+    for (const tpl of templates) {
+      const fixedTitle = fixMojibake(tpl.title);
+      const fixedFilename = fixMojibake(tpl.filename);
+      if (fixedTitle !== tpl.title || fixedFilename !== tpl.filename) {
+        await execute('UPDATE application_templates SET title = ?, filename = ? WHERE id = ?', [fixedTitle, fixedFilename, tpl.id]);
+        console.log(`[DB AutoHeal] 成功自愈修复 application_templates (ID: ${tpl.id}) 乱码: ${fixedTitle}`);
+      }
+    }
+
+    // 3. 修复 membership_applications 乱码
+    const apps = await query('SELECT id, submission_filename FROM membership_applications WHERE submission_filename IS NOT NULL');
+    for (const app of apps) {
+      const fixedFilename = fixMojibake(app.submission_filename);
+      if (fixedFilename !== app.submission_filename) {
+        await execute('UPDATE membership_applications SET submission_filename = ? WHERE id = ?', [fixedFilename, app.id]);
+        console.log(`[DB AutoHeal] 成功自愈修复 membership_applications (ID: ${app.id}) 乱码: ${fixedFilename}`);
+      }
+    }
+
+    // 4. 修复 daily_ideas 乱码
+    const ideas = await query('SELECT id, original_filename FROM daily_ideas WHERE original_filename IS NOT NULL');
+    for (const idea of ideas) {
+      const fixedFilename = fixMojibake(idea.original_filename);
+      if (fixedFilename !== idea.original_filename) {
+        await execute('UPDATE daily_ideas SET original_filename = ? WHERE id = ?', [fixedFilename, idea.id]);
+        console.log(`[DB AutoHeal] 成功自愈修复 daily_ideas (ID: ${idea.id}) 乱码: ${fixedFilename}`);
+      }
+    }
+  } catch (err) {
+    // 忽略自愈过程中的次要错误，不阻塞服务启动
+  }
 }
 
 module.exports = {

@@ -6,15 +6,10 @@ const fs = require('fs');
 const { getOne, execute, clubFilesDir } = require('../db/database');
 const { invalidateCache } = require('../services/pageRenderer');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { fixMojibake } = require('../utils/filenameFixer');
 
 function decodeUploadFilename(filename) {
-  if (!filename) return '';
-  if (/[\u4e00-\u9fa5]/.test(filename)) return filename;
-  try {
-    const decoded = Buffer.from(filename, 'latin1').toString('utf8');
-    if (/[\u4e00-\u9fa5]/.test(decoded) && !decoded.includes('\ufffd')) return decoded;
-  } catch (e) {}
-  return filename;
+  return fixMojibake(filename);
 }
 
 const aboutFileStorage = multer.diskStorage({

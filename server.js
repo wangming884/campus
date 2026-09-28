@@ -30,6 +30,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// 规范化重定向：将 /index.html 与其他 *.html 重定向至标准路由（确保经由服务端水合直出）
+app.get('/:page.html', (req, res) => {
+  const page = req.params.page;
+  if (page === 'index') return res.redirect(301, '/');
+  return res.redirect(301, `/${page}`);
+});
+app.get('/page/:slug.html', (req, res) => {
+  return res.redirect(301, `/page/${req.params.slug}`);
+});
+
 // 静态资源托管
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
@@ -110,13 +120,6 @@ app.get('/profile', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'profile.html'));
 });
 
-// 规范化重定向：将 /index.html 与其他 *.html 重定向至标准路由
-app.get('/:page([a-zA-Z0-9_-]+)\.html', (req, res) => {
-  const page = req.params.page;
-  if (page === 'index') return res.redirect(301, '/');
-  return res.redirect(301, `/${page}`);
-});
-
 // 自定义新增网页通用路由
 app.get('/page/:slug', async (req, res) => {
   try {
@@ -131,6 +134,17 @@ app.get('/page/:slug', async (req, res) => {
   } catch (error) {
     res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
   }
+});
+
+// 404 兜底处理（HTML页面展示友好的404.html，API请求返回JSON）
+app.use((req, res) => {
+  if (req.accepts('html')) {
+    return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+  }
+  res.status(404).json({
+    success: false,
+    message: '请求的页面或接口资源不存在'
+  });
 });
 
 // 全局错误处理

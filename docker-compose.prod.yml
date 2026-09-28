@@ -12,7 +12,7 @@ services:
       - DB_HOST=host.docker.internal
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASSWORD=af16c8d83e45fa00
+      - DB_PASSWORD=123456
       - DB_NAME=campus_club
       - USE_SQLITE=false
       - PORT=3000

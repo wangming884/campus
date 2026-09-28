@@ -14,13 +14,7 @@ if (!fs.existsSync(dailyIdeasDir)) {
 
 // 安全文件名转码（防止 UTF-8 中文被 Latin1 二次转码破坏）
 function safeOriginalName(raw) {
-  if (!raw) return "idea_attachment";
-  if (/[\u4e00-\u9fa5]/.test(raw)) return raw;
-  try {
-    const decoded = Buffer.from(raw, "latin1").toString("utf8");
-    if (/[\u4e00-\u9fa5]/.test(decoded)) return decoded;
-  } catch (e) {}
-  return raw;
+  return fixMojibake(raw) || 'idea_attachment';
 }
 
 // 安全附件上传配置
@@ -151,6 +145,9 @@ router.get('/my', authenticateToken, async (req, res) => {
       ORDER BY d.idea_date DESC, d.id DESC
     `, [req.user.id]);
 
+    for (const item of ideas) {
+      if (item.original_filename) item.original_filename = fixMojibake(item.original_filename);
+    }
     res.json({
       success: true,
       data: ideas
@@ -233,6 +230,9 @@ router.get('/', authenticateToken, requireRole(['admin', 'super_admin']), async 
       pendingCount = p ? p.c : 0;
     }
 
+    for (const item of ideas) {
+      if (item.original_filename) item.original_filename = fixMojibake(item.original_filename);
+    }
     res.json({
       success: true,
       data: ideas,
@@ -331,7 +331,8 @@ router.get('/:id/preview-pdf', async (req, res) => {
     }
 
     if (validPdf) {
-      const originalBase = path.basename(idea.original_filename || filePath, path.extname(idea.original_filename || filePath));
+      const fixedName = fixMojibake(idea.original_filename || filePath);
+      const originalBase = path.basename(fixedName, path.extname(fixedName));
       const encodedPdfName = encodeURIComponent(`${originalBase}.pdf`);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="${encodedPdfName}"; filename*=UTF-8''${encodedPdfName}`);
@@ -408,7 +409,7 @@ router.get('/:id/download', async (req, res) => {
 
     const wantPdf = req.query.format === 'pdf';
     let targetFile = idea.file_path;
-    let downloadName = idea.original_filename || path.basename(targetFile);
+    let downloadName = fixMojibake(idea.original_filename || path.basename(targetFile));
 
     if (wantPdf) {
       if (idea.pdf_path && fs.existsSync(idea.pdf_path)) {

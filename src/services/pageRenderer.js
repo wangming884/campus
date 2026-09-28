@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getOne, query, clubFilesDir } = require('../db/database');
+const { fixMojibake } = require('../utils/filenameFixer');
 
 const publicDir = path.join(__dirname, '../../public');
 
@@ -130,6 +131,10 @@ async function getClubDocumentInfo() {
   }
   try {
     const doc = await getOne('SELECT id, title, filename, mime_type, size, updated_at FROM club_documents WHERE id = 1');
+    if (doc) {
+      doc.title = fixMojibake(doc.title);
+      doc.filename = fixMojibake(doc.filename);
+    }
     cachedClubDoc = doc || null;
     cachedClubDocTime = now;
     return cachedClubDoc;
@@ -145,6 +150,10 @@ async function getActiveTemplateInfo() {
   }
   try {
     const tpl = await getOne('SELECT id, title, filename, size, created_at FROM application_templates WHERE is_active = 1 ORDER BY id DESC LIMIT 1');
+    if (tpl) {
+      tpl.title = fixMojibake(tpl.title);
+      tpl.filename = fixMojibake(tpl.filename);
+    }
     cachedActiveTemplate = tpl || null;
     cachedActiveTemplateTime = now;
     return cachedActiveTemplate;
@@ -269,14 +278,17 @@ async function renderPageHtml(pageType, slug = '') {
       html = replaceElementInnerById(html, 'about-page-content', escapeHtml(aboutContent));
     }
     if (clubDoc) {
-      const meta = `${clubDoc.title || clubDoc.filename} · ${formatFileSize(clubDoc.size)}`;
+      const docTitle = fixMojibake(clubDoc.title || clubDoc.filename);
+      const meta = `${docTitle} · ${formatFileSize(clubDoc.size)}`;
       html = html.replace(/id=["']about-document-download["']\s+style=["'][^"']*display:\s*none;?[^"']*["']/i, 'id="about-document-download" style="display: flex; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-light);"');
       html = replaceElementInnerById(html, 'about-document-download-meta', escapeHtml(meta));
     }
   } else if (pageType === 'recruitment') {
     if (activeTemplate) {
-      html = replaceElementInnerById(html, 'rec-template-title', escapeHtml(activeTemplate.title));
-      html = replaceElementInnerById(html, 'rec-template-meta', escapeHtml(`存储文件名: ${activeTemplate.filename} · 大小: ${formatFileSize(activeTemplate.size)} · 格式: Word/PDF`));
+      const templateTitle = fixMojibake(activeTemplate.title);
+      const templateFilename = fixMojibake(activeTemplate.filename);
+      html = replaceElementInnerById(html, 'rec-template-title', escapeHtml(templateTitle));
+      html = replaceElementInnerById(html, 'rec-template-meta', escapeHtml(`存储文件名: ${templateFilename} · 大小: ${formatFileSize(activeTemplate.size)} · 格式: Word/PDF`));
     }
   } else if (pageType === 'index') {
     if (portalConfig?.hero_badge) {

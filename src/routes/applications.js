@@ -10,6 +10,7 @@ const { sendAdmissionEmail, sendRejectionEmail } = require('../services/mailer')
 const { buildExcelXml, buildCsvWithBom } = require('../utils/excelExporter');
 const { isWordDocument, getExpectedPdfPath, convertWordToPdf, getConverterStatus } = require('../utils/docConverter');
 const { applicationSubmitLimiter } = require('../middleware/rateLimiter');
+const { fixMojibake } = require('../utils/filenameFixer');
 
 // 安全文件过滤器
 const safeFileFilter = (req, file, cb) => {
@@ -24,13 +25,7 @@ const safeFileFilter = (req, file, cb) => {
 
 // 安全文件名转码（防止 UTF-8 中文被 Latin1 二次转码损坏）
 function safeOriginalName(raw) {
-  if (!raw) return '';
-  if (/[\u4e00-\u9fa5]/.test(raw)) return raw;
-  try {
-    const decoded = Buffer.from(raw, 'latin1').toString('utf8');
-    if (/[\u4e00-\u9fa5]/.test(decoded) && !decoded.includes('\ufffd')) return decoded;
-  } catch (e) {}
-  return raw;
+  return fixMojibake(raw);
 }
 
 // 模板存储配置
@@ -81,6 +76,9 @@ router.get('/template/active', async (req, res) => {
       return res.status(404).json({ success: false, message: '暂无可用的招新申请表模板' });
     }
 
+    template.title = fixMojibake(template.title);
+    template.filename = fixMojibake(template.filename);
+
     res.json({ success: true, data: template });
   } catch (error) {
     console.error('Get active template error:', error);
@@ -113,7 +111,7 @@ async function handleTemplateDownload(req, res) {
       return res.status(404).send('申请表模板文件不存在或已被移除');
     }
 
-    res.download(filePath, template.filename);
+    res.download(filePath, fixMojibake(template.filename || path.basename(filePath)));
   } catch (error) {
     console.error('Download template error:', error);
     res.status(500).send('下载模板失败');
@@ -133,6 +131,10 @@ router.get('/templates', authenticateToken, requireRole(['admin', 'super_admin']
       ORDER BY t.id DESC
     `);
 
+    for (const tpl of list) {
+      tpl.title = fixMojibake(tpl.title);
+      tpl.filename = fixMojibake(tpl.filename);
+    }
     res.json({ success: true, data: list });
   } catch (error) {
     console.error('Get templates error:', error);
@@ -148,7 +150,7 @@ router.post('/templates', authenticateToken, requireRole(['admin', 'super_admin'
     }
 
     const originalName = safeOriginalName(req.file.originalname);
-    const title = req.body.title || originalName;
+    const title = fixMojibake(req.body.title || originalName).trim();
     const setActive = req.body.set_active === 'true' || req.body.set_active === true;
 
     if (setActive) {
@@ -234,6 +236,9 @@ router.post('/submit', authenticateToken, applicationSubmitLimiter, uploadSubmis
 
     // 检查用户当前角色
     if (user.role === 'member' || user.role === 'admin' || user.role === 'super_admin') {
+      if (req.file && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+      }
       return res.status(400).json({
         success: false,
         message: `您当前身份已是【${user.role === 'member' ? '社团成员' : '管理员'}】，无需重复提交入社申请`
@@ -243,6 +248,9 @@ router.post('/submit', authenticateToken, applicationSubmitLimiter, uploadSubmis
     // 检查是否有待审核的申请
     const pending = await getOne('SELECT id FROM membership_applications WHERE user_id = ? AND status = ?', [user.id, 'pending']);
     if (pending) {
+      if (req.file && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+      }
       return res.status(400).json({
         success: false,
         message: '您已有正在审核中的入社申请，请耐心等待管理员审核'
@@ -376,7 +384,7 @@ router.get('/download-submission/:id', authenticateToken, async (req, res) => {
       return res.status(404).send('申请表文件已丢失或不存在');
     }
 
-    res.download(filePath, app.submission_filename || path.basename(filePath));
+    res.download(filePath, fixMojibake(app.submission_filename || path.basename(filePath)));
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).send('下载失败: ' + error.message);
@@ -413,7 +421,7 @@ router.get('/preview-submission/:id', authenticateToken, async (req, res) => {
 
     let fileToServe = filePath;
     let serveMime = null;
-    let downloadFilename = app.submission_filename || path.basename(filePath);
+    let downloadFilename = fixMojibake(app.submission_filename || path.basename(filePath));
 
     // 若原文件为 Word 文档 (.doc / .docx)，自动提供或按需转换为 PDF 在线展示
     if (isWordDocument(filePath)) {
@@ -603,6 +611,9 @@ router.get('/export', authenticateToken, requireRole(['admin', 'super_admin']), 
 
     sql += ' ORDER BY id DESC';
     const list = await query(sql, params);
+    for (const item of list) {
+      if (item.submission_filename) item.submission_filename = fixMojibake(item.submission_filename);
+    }
 
     const columns = [
       { title: '申请编号', key: 'id', width: 70, type: 'Number' },
@@ -645,16 +656,18 @@ router.get('/export', authenticateToken, requireRole(['admin', 'super_admin']), 
 
     if (isCsv) {
       const csvContent = buildCsvWithBom(columns, list);
-      const filename = encodeURIComponent("社团招新报名花名册_" + timestamp + ".csv");
+      const rawName = `社团招新报名花名册_${timestamp}.csv`;
+      const encoded = encodeURIComponent(rawName);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename=' + filename);
+      res.setHeader('Content-Disposition', `attachment; filename="${encoded}"; filename*=UTF-8''${encoded}`);
       return res.send(csvContent);
     }
 
     const excelXml = buildExcelXml(columns, list, '社团招新报名花名册');
-    const filename = encodeURIComponent("社团招新报名花名册_" + timestamp + ".xls");
+    const rawName = `社团招新报名花名册_${timestamp}.xls`;
+    const encoded = encodeURIComponent(rawName);
     res.setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=' + filename);
+    res.setHeader('Content-Disposition', `attachment; filename="${encoded}"; filename*=UTF-8''${encoded}`);
     res.send(excelXml);
   } catch (error) {
     console.error('Export applications error:', error);
@@ -683,6 +696,9 @@ router.get('/', authenticateToken, requireRole(['admin', 'super_admin']), async 
     sql += ' ORDER BY id DESC';
 
     const list = await query(sql, params);
+    for (const item of list) {
+      if (item.submission_filename) item.submission_filename = fixMojibake(item.submission_filename);
+    }
     res.json({ success: true, data: list });
   } catch (error) {
     console.error('Get applications error:', error);
