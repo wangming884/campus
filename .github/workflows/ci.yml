@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 语法与冒烟测试
+        run: npm test
+        env:
+          # CI 中不连数据库，仅提供占位密钥以满足启动校验
+          JWT_SECRET: ci_placeholder_secret_at_least_32_chars_long
+          USE_SQLITE: 'true'

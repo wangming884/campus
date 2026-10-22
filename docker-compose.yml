@@ -11,10 +11,10 @@ services:
       - DB_HOST=host.docker.internal
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASSWORD=your_mysql_password
+      - DB_PASSWORD=${DB_PASSWORD:?请在项目根目录 .env 中配置 DB_PASSWORD}
       - DB_NAME=campus_club
       - PORT=3000
-      - JWT_SECRET=campus_club_jwt_secret_key_2026
+      - JWT_SECRET=${JWT_SECRET:?请在项目根目录 .env 中配置 JWT_SECRET}
       - NODE_ENV=production
     volumes:
       - ./public:/app/public

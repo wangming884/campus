@@ -6,6 +6,7 @@ const fs = require('fs');
 const { query, getOne, execute, dailyIdeasDir } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { isWordDocument, getExpectedPdfPath, convertWordToPdf } = require('../utils/docConverter');
+const { fixMojibake } = require('../utils/filenameFixer');
 
 // 确保存储目录存在
 if (!fs.existsSync(dailyIdeasDir)) {

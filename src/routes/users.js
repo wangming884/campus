@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { query, getOne, execute } = require('../db/database');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
@@ -248,7 +249,7 @@ router.post('/:id/demote', authenticateToken, requireRole(['admin', 'super_admin
   }
 });
 
-// 5. 管理员/超管重置用户密码为统一初始密码 123456
+// 5. 管理员/超管重置用户密码为一次性随机密码
 router.post('/:id/reset-password', authenticateToken, requireRole(['admin', 'super_admin']), async (req, res) => {
   try {
     const targetUserId = req.params.id;
@@ -270,15 +271,17 @@ router.post('/:id/reset-password', authenticateToken, requireRole(['admin', 'sup
       }
     }
 
-    // 将密码重置为 123456
+    // 生成一次性随机密码（12 位，含大小写与数字），避免所有账号共用一个固定口令
+    const temporaryPassword = crypto.randomBytes(9).toString('base64url');
     const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync('123456', salt);
+    const hash = bcrypt.hashSync(temporaryPassword, salt);
     await execute('UPDATE users SET password = ? WHERE id = ?', [hash, targetUserId]);
 
     const roleNameMap = { user: '普通用户', member: '社团成员', admin: '管理员' };
     res.json({
       success: true,
-      message: `已成功将【${targetUser.name}】（${roleNameMap[targetUser.role] || targetUser.role}）的登录密码重置为：123456`
+      data: { temporaryPassword },
+      message: `已成功重置【${targetUser.name}】（${roleNameMap[targetUser.role] || targetUser.role}）的登录密码，一次性新密码：${temporaryPassword}（请通过安全渠道转告本人，并提醒登录后立即修改）`
     });
   } catch (error) {
     console.error('Reset password error:', error);

@@ -2,6 +2,7 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
 // 确保上传与数据存储目录存在
@@ -415,13 +416,16 @@ async function seedMySQLData() {
   // 1. 初始化超级管理员
   const [adminRows] = await pool.query('SELECT id FROM users WHERE role = ?', ['super_admin']);
   if (adminRows.length === 0) {
+    const initialAdminPassword = process.env.ADMIN_INITIAL_PASSWORD || crypto.randomBytes(9).toString('base64url');
     const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync('Admin@123456', salt);
+    const hash = bcrypt.hashSync(initialAdminPassword, salt);
     await pool.query(`
       INSERT INTO users (name, email, password, college, className, qq, role)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, ['超级管理员', 'superadmin@campus.club', hash, '计算机与软件学院', '软件工程卓越班', '100000001', 'super_admin']);
-    console.log('[MySQL] 初始化超级管理员已创建: superadmin@campus.club / Admin@123456');
+    console.log('[MySQL] 已创建初始超级管理员 superadmin@campus.club');
+    console.log(`[MySQL] 初始密码：${initialAdminPassword}  ← 仅本次显示，请立即登录并修改`);
+    console.log('[MySQL] 可通过 ADMIN_INITIAL_PASSWORD 环境变量指定该初始密码');
   }
 
   // 2. 初始化官网默认展示内容
@@ -769,6 +773,52 @@ async function execute(sql, params = []) {
   return sqliteExecute(sql, params);
 }
 
+// 事务包装器：MySQL 走独立连接 + begin/commit，SQLite 走 BEGIN/COMMIT。
+// 回调内必须使用传入的 tx（而非全局 query/execute），否则语句不会落在同一事务里。
+async function withTransaction(handler) {
+  if (isMySQL && pool) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const tx = {
+        query: async (sql, params = []) => {
+          const [rows] = await conn.query(sql, params);
+          return rows;
+        },
+        getOne: async (sql, params = []) => {
+          const [rows] = await conn.query(sql, params);
+          return rows.length > 0 ? rows[0] : null;
+        },
+        execute: async (sql, params = []) => {
+          const [result] = await conn.query(sql, params);
+          const id = Number(result.insertId);
+          const affected = Number(result.affectedRows);
+          return { lastInsertRowid: id, insertId: id, changes: affected, affectedRows: affected };
+        }
+      };
+      const result = await handler(tx);
+      await conn.commit();
+      return result;
+    } catch (error) {
+      try { await conn.rollback(); } catch (rollbackError) { /* 忽略回滚异常 */ }
+      throw error;
+    } finally {
+      conn.release();
+    }
+  }
+
+  if (!sqliteDb) initFallbackSQLite();
+  sqliteDb.exec('BEGIN');
+  try {
+    const result = await handler({ query: sqliteQuery, getOne: sqliteGetOne, execute: sqliteExecute });
+    sqliteDb.exec('COMMIT');
+    return result;
+  } catch (error) {
+    try { sqliteDb.exec('ROLLBACK'); } catch (rollbackError) { /* 忽略回滚异常 */ }
+    throw error;
+  }
+}
+
 // ---------------- SQLite 应急备用引擎 ----------------
 function initFallbackSQLite() {
   const { DatabaseSync } = require('node:sqlite');
@@ -1066,6 +1116,19 @@ function initFallbackSQLite() {
       insertCat.run(c.title, c.sort_order);
     }
   }
+
+  // 为 SQLite 应急引擎补种超级管理员，避免降级后无任何可管理账号
+  const sqliteAdmin = sqliteDb.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'super_admin'").get();
+  if (!sqliteAdmin || sqliteAdmin.c === 0) {
+    const initialAdminPassword = process.env.ADMIN_INITIAL_PASSWORD || crypto.randomBytes(9).toString('base64url');
+    const hash = bcrypt.hashSync(initialAdminPassword, bcrypt.genSaltSync(10));
+    sqliteDb.prepare(`
+      INSERT INTO users (name, email, password, college, className, qq, role)
+      VALUES (?, ?, ?, ?, ?, ?, 'super_admin')
+    `).run('超级管理员', 'superadmin@campus.club', hash, '计算机与软件学院', '软件工程卓越班', '100000001');
+    console.log('[SQLite] 已创建初始超级管理员 superadmin@campus.club');
+    console.log(`[SQLite] 初始密码：${initialAdminPassword}  ← 仅本次显示，请立即登录并修改`);
+  }
 }
 
 function normalizeSqlForSqlite(sql) {
@@ -1117,7 +1180,13 @@ function formatLocalDateTime(date) {
 }
 
 async function cleanupReviewedSubmissions() {
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  // 保留天数可通过 ATTACHMENT_RETENTION_DAYS 配置；<= 0 表示关闭自动清理。
+  const retentionDays = Number.parseInt(process.env.ATTACHMENT_RETENTION_DAYS || '30', 10);
+  if (!Number.isFinite(retentionDays) || retentionDays <= 0) {
+    return 0;
+  }
+
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
   const cutoffValue = formatLocalDateTime(cutoff);
   const expired = await query(`
     SELECT id, submission_filepath, submission_filename, submission_pdf_path
@@ -1152,7 +1221,7 @@ async function cleanupReviewedSubmissions() {
     cleaned += 1;
   }
 
-  if (cleaned > 0) console.log(`[Cleanup] 已自动清理 ${cleaned} 份超过 1 天的已审阅申请附件`);
+  if (cleaned > 0) console.log(`[Cleanup] 已自动清理 ${cleaned} 份超过 ${retentionDays} 天的已审阅申请附件`);
   return cleaned;
 }
 
@@ -1215,6 +1284,7 @@ module.exports = {
   query,
   getOne,
   execute,
+  withTransaction,
   uploadsDir,
   templatesDir,
   submissionsDir,

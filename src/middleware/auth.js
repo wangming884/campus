@@ -1,7 +1,28 @@
 const jwt = require('jsonwebtoken');
 const { getOne } = require('../db/database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'campus_club_jwt_secret_key_2026';
+// 密钥必须由环境变量提供，代码中不再保留任何可用的默认密钥。
+// 缺失时保留 undefined：签发/校验会直接抛错（失败即关闭），而不是静默使用弱密钥。
+const JWT_SECRET = process.env.JWT_SECRET || null;
+
+if (!JWT_SECRET) {
+  console.error('[Auth] ❌ 未配置 JWT_SECRET 环境变量，所有登录签发与鉴权都将失败，请在 .env 中设置至少 32 位随机字符串。');
+} else if (JWT_SECRET.length < 32) {
+  console.warn('[Auth] ⚠️ JWT_SECRET 长度不足 32 位，建议更换为更长的随机密钥。');
+}
+
+// 统一的 Cookie 配置：仅当显式开启 COOKIE_SECURE 时才加 Secure，
+// 避免纯 HTTP 部署（如 http://IP:5624）下开启后浏览器不再回传 Cookie 导致登录失效。
+function buildCookieOptions() {
+  const options = {
+    httpOnly: true,
+    maxAge: 7 * 24 * 3600 * 1000,
+    sameSite: 'lax',
+    path: '/'
+  };
+  if (process.env.COOKIE_SECURE === 'true') options.secure = true;
+  return options;
+}
 
 function generateToken(user) {
   return jwt.sign(
@@ -100,6 +121,7 @@ function requireRole(allowedRoles) {
 
 module.exports = {
   JWT_SECRET,
+  buildCookieOptions,
   generateToken,
   authenticateToken,
   optionalAuth,

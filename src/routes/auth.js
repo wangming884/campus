@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getOne, execute } = require('../db/database');
-const { generateToken, authenticateToken } = require('../middleware/auth');
+const { generateToken, authenticateToken, buildCookieOptions } = require('../middleware/auth');
 const { sendEmail } = require('../services/mailer');
 const { verificationCodeIpLimiter, verificationCodeEmailLimiter, authLoginLimiter } = require('../middleware/rateLimiter');
 
@@ -163,11 +163,7 @@ router.post('/register', async (req, res) => {
 
     const token = generateToken(newUser);
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 3600 * 1000,
-      sameSite: 'lax'
-    });
+    res.cookie('token', token, buildCookieOptions());
 
     res.status(201).json({
       success: true,
@@ -212,11 +208,7 @@ router.post('/login', authLoginLimiter, async (req, res) => {
 
     const token = generateToken(safeUser);
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      maxAge: 7 * 24 * 3600 * 1000,
-      sameSite: 'lax'
-    });
+    res.cookie('token', token, buildCookieOptions());
 
     res.json({
       success: true,

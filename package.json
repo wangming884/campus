@@ -1,16 +1,24 @@
 {
   "name": "campus",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "高校学生社团官网与内部管理系统（Express + MySQL/SQLite）",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node scripts/smoke-test.js",
+    "check": "node scripts/smoke-test.js"
   },
-  "keywords": [],
+  "keywords": [
+    "campus",
+    "club",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22.5"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

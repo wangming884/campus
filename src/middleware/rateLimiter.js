@@ -3,13 +3,14 @@
  * 零外部依赖，支持滑动窗口/令牌桶计数，内置定期内存垃圾清理
  */
 
+/**
+ * 获取客户端 IP。
+ * 只信任 Express 解析出的 req.ip：仅当服务端显式配置了 TRUST_PROXY 时，
+ * Express 才会采信 X-Forwarded-For。切勿直接读取该请求头，否则客户端可随意伪造 IP 绕过限流。
+ */
 function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const list = String(forwarded).split(',');
-    return list[0].trim();
-  }
-  return req.ip || req.connection?.remoteAddress || '127.0.0.1';
+  const ip = req.ip || (req.socket && req.socket.remoteAddress) || '127.0.0.1';
+  return String(ip).replace(/^::ffff:/, '');
 }
 
 class MemoryStore {

@@ -12,11 +12,11 @@ services:
       - DB_HOST=host.docker.internal
       - DB_PORT=3306
       - DB_USER=root
-      - DB_PASSWORD=123456
+      - DB_PASSWORD=${DB_PASSWORD:?请在项目根目录 .env 中配置 DB_PASSWORD}
       - DB_NAME=campus_club
       - USE_SQLITE=false
       - PORT=3000
-      - JWT_SECRET=7xK2v9Qp4mZ8aR3sT6wY1uH5dF0gJ2lB
+      - JWT_SECRET=${JWT_SECRET:?请在项目根目录 .env 中配置 JWT_SECRET}
       - NODE_ENV=production
     volumes:
       - campus_uploads_data:/app/uploads

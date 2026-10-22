@@ -1,0 +1,31 @@
+# 依赖与构建产物
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# 环境变量（含数据库密码、JWT 密钥，严禁入库）
+.env
+.env.*
+!.env.example
+
+# 运行时数据与备份
+data/
+*.db
+*.sqlite
+*.sqlite3
+backups/
+
+# 用户上传文件（含学生真实姓名等个人信息，严禁入库）
+uploads/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# 临时目录
+scratch/
+.system_generated
+.workbuddy-ai/

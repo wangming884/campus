@@ -936,7 +936,7 @@ async function loadUsers() {
                 ⚙️ 权限调度
               </button>
               ${quickBtns}
-              <button class="btn btn-outline btn-sm" onclick="resetUserPassword(${u.id})" title="重置该用户密码为统一初始密码 123456" style="color: #d97706; border-color: #d97706;">
+              <button class="btn btn-outline btn-sm" onclick="resetUserPassword(${u.id})" title="重置该用户密码为一次性随机密码" style="color: #d97706; border-color: #d97706;">
                 🔒 重置密码
               </button>
               <button class="btn btn-outline btn-sm" onclick="openSendEmailModal(${u.id})" title="向该用户发送自定义邮件" style="color: #6366f1; border-color: #6366f1;">
@@ -1871,7 +1871,7 @@ async function resetUserPassword(userId) {
   const target = cachedUsers.find(u => u.id == userId);
   const userName = target ? target.name : `用户#${userId}`;
 
-  if (!confirm(`确定要重置【${userName}】的登录密码为统一初始密码【123456】吗？\n\n重置后该用户需使用新密码 123456 重新登录。此操作不可撤回！`)) {
+  if (!confirm(`确定要重置【${userName}】的登录密码吗？\n\n系统将生成一次性随机密码，重置后该用户需使用新密码登录。此操作不可撤回！`)) {
     return;
   }
 
@@ -1881,7 +1881,12 @@ async function resetUserPassword(userId) {
     });
 
     if (res.success) {
-      showToast(res.message, 'success', 6000);
+      const temporaryPassword = res.data && res.data.temporaryPassword;
+      if (temporaryPassword) {
+        try { await navigator.clipboard.writeText(temporaryPassword); } catch (e) {}
+        alert(`✅ 已重置【${userName}】的登录密码\n\n一次性新密码：${temporaryPassword}\n\n（已尝试复制到剪贴板，请通过安全渠道转告本人，并提醒其登录后立即修改）`);
+      }
+      showToast(res.message, 'success', 10000);
     }
   } catch (error) {
     showToast(error.message, 'error');

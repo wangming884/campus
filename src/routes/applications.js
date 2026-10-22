@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { query, getOne, execute, templatesDir, submissionsDir } = require('../db/database');
+const { query, getOne, execute, withTransaction, templatesDir, submissionsDir } = require('../db/database');
 const { invalidateCache } = require('../services/pageRenderer');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const { sendAdmissionEmail, sendRejectionEmail } = require('../services/mailer');
@@ -721,25 +721,42 @@ router.post('/:id/review', authenticateToken, requireRole(['admin', 'super_admin
       return res.status(404).json({ success: false, message: '未找到该入社申请' });
     }
 
+    if (application.status !== 'pending') {
+      const statusText = application.status === 'approved' ? '已通过' : '已驳回';
+      return res.status(409).json({
+        success: false,
+        message: `该申请已处理（当前状态：${statusText}），请勿重复审核`
+      });
+    }
+
     const newStatus = action === 'approve' ? 'approved' : 'rejected';
 
-    // 1. 更新申请记录状态
-    await execute(`
-      UPDATE membership_applications
-      SET status = ?, reviewer_id = ?, reviewer_name = ?, review_notes = ?, reviewed_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [newStatus, req.user.id, req.user.name, review_notes || '', applicationId]);
+    // 1. 状态变更与角色升级放在同一事务中，避免"申请已通过但用户角色没升级"的不一致；
+    //    同时用 status='pending' 作为条件更新，防止两个管理员同时审核造成重复处理。
+    let rolePromoted = false;
+    await withTransaction(async (tx) => {
+      const updated = await tx.execute(`
+        UPDATE membership_applications
+        SET status = ?, reviewer_id = ?, reviewer_name = ?, review_notes = ?, reviewed_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'pending'
+      `, [newStatus, req.user.id, req.user.name, review_notes || '', applicationId]);
 
-    // 2. 如果审核通过：将该用户角色升级为「社团成员」
-    if (action === 'approve') {
-      const targetUser = await getOne('SELECT role FROM users WHERE id = ?', [application.user_id]);
-      if (targetUser && targetUser.role === 'user') {
-        await execute("UPDATE users SET role = 'member' WHERE id = ?", [application.user_id]);
-        console.log(`[Role Update] 用户 ${application.name}(ID: ${application.user_id}) 已正式晋升为社团成员 (member)`);
+      if (!updated.changes) {
+        const conflict = new Error('该申请已被其他管理员处理，请刷新后重试');
+        conflict.code = 'ALREADY_REVIEWED';
+        throw conflict;
       }
 
-      // 3. 自动发送录取通知邮件
-      await sendAdmissionEmail({
+      // 2. 审核通过：仅把「普通用户」升级为「社团成员」，不覆盖已有的更高角色
+      if (action === 'approve') {
+        const roleUpdate = await tx.execute("UPDATE users SET role = 'member' WHERE id = ? AND role = 'user'", [application.user_id]);
+        rolePromoted = !!roleUpdate.changes;
+      }
+    });
+
+    // 3. 邮件属于外部副作用，放在事务提交之后执行，发信失败不回滚审核结果
+    if (action === 'approve') {
+      const mail = await sendAdmissionEmail({
         to: application.email,
         name: application.name,
         college: application.college,
@@ -750,11 +767,14 @@ router.post('/:id/review', authenticateToken, requireRole(['admin', 'super_admin
 
       return res.json({
         success: true,
-        message: `审核完成：已批准【${application.name}】入社，用户身份已自动升级为「社团成员」，系统已向 ${application.email} 发送录取喜报邮件！`
+        mailSent: !!(mail && mail.success),
+        rolePromoted,
+        message: `审核完成：已批准【${application.name}】入社` +
+          (rolePromoted ? '，用户身份已自动升级为「社团成员」' : '，该用户当前角色无需变更') +
+          (mail && mail.success ? `，系统已向 ${application.email} 发送录取喜报邮件！` : `，但录取邮件发送失败（${mail && mail.error ? mail.error : '未知原因'}），请稍后重试或手动通知。`)
       });
     } else {
-      // 驳回时：发送反馈邮件
-      await sendRejectionEmail({
+      const mail = await sendRejectionEmail({
         to: application.email,
         name: application.name,
         reviewNotes: review_notes
@@ -762,10 +782,15 @@ router.post('/:id/review', authenticateToken, requireRole(['admin', 'super_admin
 
       return res.json({
         success: true,
-        message: `审核完成：已驳回【${application.name}】的申请，系统已向 ${application.email} 发送结果反馈邮件。`
+        mailSent: !!(mail && mail.success),
+        message: `审核完成：已驳回【${application.name}】的申请` +
+          (mail && mail.success ? `，系统已向 ${application.email} 发送结果反馈邮件。` : `，但反馈邮件发送失败（${mail && mail.error ? mail.error : '未知原因'}）。`)
       });
     }
   } catch (error) {
+    if (error.code === 'ALREADY_REVIEWED') {
+      return res.status(409).json({ success: false, message: error.message });
+    }
     console.error('Review application error:', error);
     res.status(500).json({ success: false, message: '审核操作失败: ' + error.message });
   }
